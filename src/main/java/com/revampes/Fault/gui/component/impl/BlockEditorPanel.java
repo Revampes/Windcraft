@@ -133,6 +133,13 @@ public class BlockEditorPanel extends Component {
         }
 
         if (draggingBlock != null) {
+            for (BlockLayout layout : layouts) {
+                if (mouseY < layout.y + (layout.height / 2f)) {
+                    context.fill((int) layout.x, (int) layout.y - 2, (int) (layout.x + layout.width), (int) layout.y, 0xFFFFFF00);
+                    break;
+                }
+            }
+
             float ghostY = draggingMouseY - 16;
             drawBlock(context, draggingBlock, workspaceX + 14, ghostY, workspaceW - 28, getBlockHeight(draggingBlock), mouseX, mouseY, true);
         }
@@ -265,7 +272,8 @@ public class BlockEditorPanel extends Component {
             for (PaletteLayout layout : paletteLayouts) {
                 if (layout.contains(mouseX, mouseY)) {
                     BlockNode created = new BlockNode(layout.type);
-                    getCurrentBlocks().add(created);
+                    List<BlockNode> blocks = getCurrentBlocks();
+                    blocks.add(created);
                     changed();
                     return;
                 }
@@ -319,20 +327,20 @@ public class BlockEditorPanel extends Component {
         list.remove(draggingBlock);
 
         int insertIndex = list.size();
+
         for (int i = 0; i < layouts.size(); i++) {
             BlockLayout layout = layouts.get(i);
             if (layout.parent != list) {
                 continue;
             }
             if (mouseY < layout.y + layout.height / 2f) {
-                insertIndex = layout.index;
+                insertIndex = i;
                 break;
             }
         }
 
-        if (insertIndex < 0 || insertIndex > list.size()) {
-            insertIndex = list.size();
-        }
+        if (insertIndex < 0) insertIndex = 0;
+        if (insertIndex > list.size()) insertIndex =list.size();
 
         list.add(insertIndex, draggingBlock);
         draggingBlock = null;

@@ -1,6 +1,7 @@
 package com.revampes.Fault.modules.impl.client;
 
-import net.minecraft.client.util.InputUtil;
+import java.awt.Color;
+
 import com.revampes.Fault.gui.ClickGui;
 import com.revampes.Fault.modules.Module;
 import com.revampes.Fault.settings.impl.ButtonSetting;
@@ -9,7 +10,7 @@ import com.revampes.Fault.settings.impl.SelectSetting;
 import com.revampes.Fault.settings.impl.SliderSetting;
 import com.revampes.Fault.utility.Utils;
 
-import java.awt.Color;
+import net.minecraft.client.util.InputUtil;
 
 public class UI extends Module {
 
@@ -54,19 +55,23 @@ public class UI extends Module {
         mc.setScreen(new ClickGui());
     }
 
+    @Override
+    public void onUpdate() {
+        if (!(mc.currentScreen instanceof ClickGui) && 
+            !(mc.currentScreen instanceof com.revampes.Fault.gui.screen.HudEditorScreen) &&
+            !(mc.currentScreen instanceof com.revampes.Fault.gui.screen.SpellComboScreen)) { // Add this check
+            this.disable();
+        }
+    }
+
     public void onDisable() {
         if (!Utils.nullCheck()) {
             return;
         }
-        if (mc.currentScreen instanceof ClickGui || mc.currentScreen instanceof com.revampes.Fault.gui.screen.HudEditorScreen) {
+        if (mc.currentScreen instanceof ClickGui || 
+            mc.currentScreen instanceof com.revampes.Fault.gui.screen.HudEditorScreen ||
+            mc.currentScreen instanceof com.revampes.Fault.gui.screen.SpellComboScreen) { // Add this check
             mc.setScreen(null);
-        }
-    }
-
-    @Override
-    public void onUpdate() {
-        if (!(mc.currentScreen instanceof ClickGui) && !(mc.currentScreen instanceof com.revampes.Fault.gui.screen.HudEditorScreen)) {
-            this.disable();
         }
     }
 
