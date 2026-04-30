@@ -2,6 +2,7 @@ package com.revampes.Fault.settings.impl;
 
 import net.minecraft.client.util.InputUtil;
 import com.revampes.Fault.modules.Module;
+import com.revampes.Fault.utility.BindUtils;
 
 public class KeyBindSetting extends ButtonSetting {
     private final Module module;
@@ -12,24 +13,7 @@ public class KeyBindSetting extends ButtonSetting {
     }
 
     public String getKeyText() {
-        int keycode = module.getKeycode();
-        if (keycode == 0) return "None";
-        if (keycode >= 1000) {
-            if (keycode == 1069) return "Scroll Up";
-            if (keycode == 1070) return "Scroll Down";
-            return "Mouse " + (keycode - 1000);
-        }
-
-        if (keycode < 0 || keycode > 348) {
-            return "Invalid Key";
-        }
-
-        try {
-            InputUtil.Key key = InputUtil.Type.KEYSYM.createFromCode(keycode);
-            return key.getLocalizedText().getString();
-        } catch (Exception e) {
-            return "Error";
-        }
+        return BindUtils.formatBind(module.getKeycode());
     }
 
     public Module getModule() {

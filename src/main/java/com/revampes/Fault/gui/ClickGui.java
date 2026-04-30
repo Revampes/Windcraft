@@ -339,6 +339,17 @@ public class ClickGui extends Screen {
         double mouseY = click.y();
         int button = click.button();
         syncLayoutFromSettings();
+
+        for (ModuleComponent moduleComponent : moduleComponents) {
+            for (Component component : moduleComponent.getSettingComponents()) {
+                if (component instanceof KeyBindComponent keyBindComponent && keyBindComponent.isListening()) {
+                    keyBindComponent.mouseClicked(mouseX, mouseY, button);
+                    refreshScrollBounds();
+                    playClickSound();
+                    return true;
+                }
+            }
+        }
         
         int editBtnX = (int) (x + width - 60);
         int editBtnY = (int) y + 2;

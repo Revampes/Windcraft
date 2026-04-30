@@ -35,6 +35,17 @@ public abstract class Component {
         this.y = y;
     }
 
+    public void updateBounds(float x, float y, float width, float height) {
+        this.x = x;
+        this.y = y;
+        this.width = width;
+        this.height = height;
+    }
+
+    public boolean isPointInside(double mouseX, double mouseY) {
+        return mouseX >= x && mouseX <= x + width && mouseY >= y && mouseY <= y + height;
+    }
+
     public float getX() {
         return x;
     }

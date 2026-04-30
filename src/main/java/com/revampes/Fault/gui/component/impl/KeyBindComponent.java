@@ -2,6 +2,7 @@ package com.revampes.Fault.gui.component.impl;
 
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.text.Text;
+import com.revampes.Fault.utility.BindUtils;
 import com.revampes.Fault.gui.component.Component;
 import com.revampes.Fault.modules.ModuleManager;
 import com.revampes.Fault.settings.impl.KeyBindSetting;
@@ -48,14 +49,14 @@ public class KeyBindComponent extends Component {
     }
 
     public void mouseClicked(double mouseX, double mouseY, int button) {
-        if (mouseX >= x + width - 70 && mouseX <= x + width - 10 && mouseY >= y && mouseY <= y + height) {
-            if (button == 0) { // Left click
-                listening = !listening;
-            } else if (button == 1 && listening) { // Right click cancels binding
-                listening = false;
-            }
-        } else if (listening) {
+        if (listening) {
+            setting.getModule().setBind(BindUtils.toMouseBind(button));
             listening = false;
+            return;
+        }
+
+        if (mouseX >= x + width - 70 && mouseX <= x + width - 10 && mouseY >= y && mouseY <= y + height && button == 0) {
+            listening = true;
         }
     }
 

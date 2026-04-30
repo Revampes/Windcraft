@@ -58,7 +58,9 @@ public class ButtonComponent extends Component {
 
         if (isHovered(mouseX, mouseY)) {
             if (setting.isMethodButton) {
-                setting.runMethod();
+                if (button == 0 || button == 1) {
+                    setting.runMethod();
+                }
             } else {
                 setting.toggle();
             }
