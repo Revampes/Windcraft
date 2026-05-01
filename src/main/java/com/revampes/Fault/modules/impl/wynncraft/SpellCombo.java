@@ -1,37 +1,33 @@
 package com.revampes.Fault.modules.impl.wynncraft;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.reflect.TypeToken;
-import meteordevelopment.orbit.EventHandler;
-import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
-import net.minecraft.client.input.KeyInput;
-import net.minecraft.client.input.MouseInput;
-import net.minecraft.client.option.KeyBinding;
-import net.minecraft.client.util.InputUtil;
-import org.lwjgl.glfw.GLFW;
-import com.revampes.Fault.events.impl.PreUpdateEvent;
-import com.revampes.Fault.gui.block.BlockNode;
-import com.revampes.Fault.gui.block.BlockType;
-import com.revampes.Fault.gui.screen.SpellComboScreen;
-import com.revampes.Fault.mixin.accessor.KeyBindingAccessor;
-import com.revampes.Fault.mixin.accessor.KeyboardAccessor;
-import com.revampes.Fault.mixin.accessor.MouseAccessor;
-import com.revampes.Fault.modules.Module;
-import com.revampes.Fault.settings.impl.ButtonSetting;
-import com.revampes.Fault.settings.impl.InputSetting;
-import com.revampes.Fault.utility.BindUtils;
-import com.revampes.Fault.utility.Utils;
-
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 
-import static com.revampes.Fault.Revampes.mc;
+import org.lwjgl.glfw.GLFW;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.reflect.TypeToken;
+import com.revampes.Fault.events.impl.PreUpdateEvent;
+import com.revampes.Fault.gui.block.BlockNode;
+import com.revampes.Fault.gui.block.BlockType;
+import com.revampes.Fault.gui.screen.SpellComboScreen;
+import com.revampes.Fault.mixin.accessor.KeyBindingAccessor;
+import com.revampes.Fault.mixin.accessor.KeyboardAccessor;
+import com.revampes.Fault.modules.Module;
+import com.revampes.Fault.settings.impl.ButtonSetting;
+import com.revampes.Fault.settings.impl.InputSetting;
+import com.revampes.Fault.utility.BindUtils;
+import com.revampes.Fault.utility.Utils;
+
+import meteordevelopment.orbit.EventHandler;
+import net.minecraft.client.input.KeyInput;
+import net.minecraft.client.option.KeyBinding;
+import net.minecraft.client.util.InputUtil;
 
 public class SpellCombo extends Module {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
@@ -58,6 +54,7 @@ public class SpellCombo extends Module {
     private final ArrayDeque<PendingKeyRelease> pendingReleases = new ArrayDeque<>();
 
     private long nextActionAtMs;
+    private boolean combosInitialized = false;
 
     public SpellCombo() {
         super("SpellCombo", "Queue Wynntils quick-cast spell chains onto one key.", category.Wynncraft);
@@ -65,26 +62,38 @@ public class SpellCombo extends Module {
         this.registerSetting(configureButton);
         this.registerSetting(comboStorage);
     }
-    private void setKey()
-    {
+    private void refreshSpellKeys() {
+        Spell1Key = GLFW.GLFW_KEY_UNKNOWN;
+        Spell2Key = GLFW.GLFW_KEY_UNKNOWN;
+        Spell3Key = GLFW.GLFW_KEY_UNKNOWN;
+        Spell4Key = GLFW.GLFW_KEY_UNKNOWN;
+
         for (KeyBinding keyBinding : mc.options.allKeys) {
-            String id = keyBinding.getId();
-            switch (id) {
-                case "wynntils.keybind.castFirstSpell" ->
-                        Spell1Key = parseKeyCode(keyBinding.getBoundKeyLocalizedText().getString());
-                case "wynntils.keybind.castSecondSpell" ->
-                        Spell2Key = parseKeyCode(keyBinding.getBoundKeyLocalizedText().getString());
-                case "wynntils.keybind.castThirdSpell" ->
-                        Spell3Key = parseKeyCode(keyBinding.getBoundKeyLocalizedText().getString());
-                case "wynntils.keybind.castFourthSpell" ->
-                        Spell4Key = parseKeyCode(keyBinding.getBoundKeyLocalizedText().getString());
+            if (keyBinding == null) {
+                continue;
             }
 
+            String id = keyBinding.getId();
+            int parsedKey = parseKeyCode(keyBinding.getBoundKeyLocalizedText().getString());
+            if (id != null && id.startsWith("wynntils.keybind.cast") && id.endsWith("Spell")) {
+                switch (spellIndexFromId(id)) {
+                    case 1 -> Spell1Key = parsedKey;
+                    case 2 -> Spell2Key = parsedKey;
+                    case 3 -> Spell3Key = parsedKey;
+                    case 4 -> Spell4Key = parsedKey;
+                }
+            }
         }
-        System.out.println("Spell1: "  + Spell1Key);
-        System.out.println("Spell2: "  + Spell2Key);
-        System.out.println("Spell3: "  + Spell3Key);
-        System.out.println("Spell4: "  + Spell4Key);
+    }
+
+    private int spellIndexFromId(String id) {
+        return switch (id) {
+            case "wynntils.keybind.castFirstSpell" -> 1;
+            case "wynntils.keybind.castSecondSpell" -> 2;
+            case "wynntils.keybind.castThirdSpell" -> 3;
+            case "wynntils.keybind.castFourthSpell" -> 4;
+            default -> 0;
+        };
     }
 
     @Override
@@ -94,12 +103,11 @@ public class SpellCombo extends Module {
 
     @Override
     public void onEnable() {
-        loadCombosFromStorage();
         clearQueue();
         forceReleaseAllPending();
         resetTriggerHoldStates();
-        setKey();
-
+        refreshSpellKeys();
+        combosInitialized = false;
     }
 
     @Override
@@ -107,6 +115,7 @@ public class SpellCombo extends Module {
         clearQueue();
         forceReleaseAllPending();
         resetTriggerHoldStates();
+        combosInitialized = false;
     }
 
     @EventHandler
@@ -143,8 +152,21 @@ public class SpellCombo extends Module {
     }
 
     public void openEditor() {
-        loadCombosFromStorage();
+        if (!combosInitialized) {
+            loadCombosFromStorage();
+            combosInitialized = true;
+        }
+        refreshSpellKeys();
         mc.setScreen(new SpellComboScreen(this));
+    }
+
+    @Override
+    public void onUpdate() {
+        if (!combosInitialized) {
+            loadCombosFromStorage();
+            combosInitialized = true;
+        }
+        refreshSpellKeys();
     }
 
     public void debugPrintKeybindings() {
@@ -364,7 +386,13 @@ public class SpellCombo extends Module {
             Utils.addChatMessage("§cCast " + spellIndex + " Spell key is invalid. Set it to your Wynntils quick-cast key first.");
             return false;
         }
-        return pressAndQueueRelease(InputUtil.Type.KEYSYM.createFromCode(keyCode), keyCode);
+        return pressAndQueueRelease(createInputKey(keyCode), keyCode);
+    }
+
+    private InputUtil.Key createInputKey(int keyCode) {
+        return BindUtils.isMouseBind(keyCode)
+                ? InputUtil.Type.MOUSE.createFromCode(BindUtils.toMouseButton(keyCode))
+                : InputUtil.Type.KEYSYM.createFromCode(keyCode);
     }
 
     private boolean pressAndQueueRelease(InputUtil.Key key, int keyboardKeyCode) {
@@ -475,26 +503,6 @@ public class SpellCombo extends Module {
         }
     }
 
-    private boolean sendMouseEvent(int mouseButton, int action) {
-        if (mc.mouse == null || mc.getWindow() == null) {
-            return false;
-        }
-
-        long window = mc.getWindow().getHandle();
-        if (window == 0L) {
-            return false;
-        }
-
-        try {
-            MouseInput input = new MouseInput(mouseButton, 0);
-            MouseAccessor mouse = (MouseAccessor) mc.mouse;
-            mouse.revampes$invokeOnMouseButton(window, input, action);
-            return true;
-        } catch (Exception ignored) {
-            return false;
-        }
-    }
-
     private boolean sendKeyboardEvent(int keyCode, int action) {
         if (keyCode == GLFW.GLFW_KEY_UNKNOWN || mc.keyboard == null || mc.getWindow() == null) {
             return false;
@@ -537,14 +545,61 @@ public class SpellCombo extends Module {
     }
 
     private int parseKeyCode(String value) {
-        System.out.println("Parsing key code from: " + value);
-        if (value.contains("Button"))
-        {
-            return Integer.parseInt(value.replace("Button ",""));
+        if (value == null || value.isBlank()) {
+            return GLFW.GLFW_KEY_UNKNOWN;
         }
+
+        String mouseValue = value.trim().toLowerCase(Locale.ROOT);
+        if (mouseValue.contains("button") || mouseValue.contains("click")) {
+            if (mouseValue.contains("left")) {
+                return BindUtils.toMouseBind(GLFW.GLFW_MOUSE_BUTTON_LEFT);
+            }
+            if (mouseValue.contains("right")) {
+                return BindUtils.toMouseBind(GLFW.GLFW_MOUSE_BUTTON_RIGHT);
+            }
+            if (mouseValue.contains("middle") || mouseValue.contains("wheel")) {
+                return BindUtils.toMouseBind(GLFW.GLFW_MOUSE_BUTTON_MIDDLE);
+            }
+
+            String digits = mouseValue.replaceAll("[^0-9]", "");
+            if (!digits.isEmpty()) {
+                try {
+                    int button = Integer.parseInt(digits);
+                    if (button >= 0) {
+                        return BindUtils.toMouseBind(button);
+                    }
+                } catch (NumberFormatException ignored) {
+                    return GLFW.GLFW_KEY_UNKNOWN;
+                }
+            }
+        }
+
         String normalized = BindUtils.normalize(value);
         if (normalized.isEmpty() || normalized.equals("NONE") || normalized.equals("UNBOUND")) {
             return GLFW.GLFW_KEY_UNKNOWN;
+        }
+
+        if (normalized.contains("LEFTBUTTON")) {
+            return BindUtils.toMouseBind(GLFW.GLFW_MOUSE_BUTTON_LEFT);
+        }
+
+        if (normalized.contains("RIGHTBUTTON")) {
+            return BindUtils.toMouseBind(GLFW.GLFW_MOUSE_BUTTON_RIGHT);
+        }
+
+        if (normalized.contains("MIDDLEBUTTON")) {
+            return BindUtils.toMouseBind(GLFW.GLFW_MOUSE_BUTTON_MIDDLE);
+        }
+
+        if (normalized.startsWith("BUTTON")) {
+            String digits = normalized.replaceAll("[^0-9]", "");
+            if (!digits.isEmpty()) {
+                try {
+                    return BindUtils.toMouseBind(Integer.parseInt(digits));
+                } catch (NumberFormatException ignored) {
+                    return GLFW.GLFW_KEY_UNKNOWN;
+                }
+            }
         }
 
         if (normalized.length() == 1) {

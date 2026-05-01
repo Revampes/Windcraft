@@ -154,7 +154,7 @@ publishing {
 
 tasks.register('copyToFabric', Copy) {
 	from tasks.named('remapJar')
-	into "C:\\Users\\jedts\\AppData\\Roaming\\.minecraft\\mods"
+	into "C:\\Users\\user\\AppData\\Roaming\\PrismLauncher\\instances\\1.21.11(1)\\minecraft\\mods" //C:\\Users\\user\\AppData\\Roaming\\PrismLauncher\\instances\\1.21.11(1)\\minecraft\\mods
 }
 
 build.finalizedBy('copyToFabric')
