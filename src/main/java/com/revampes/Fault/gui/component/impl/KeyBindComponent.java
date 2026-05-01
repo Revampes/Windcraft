@@ -12,6 +12,7 @@ import java.awt.*;
 import static com.revampes.Fault.Revampes.mc;
 
 public class KeyBindComponent extends Component {
+
     private final KeyBindSetting setting;
     private boolean listening;
 
@@ -27,11 +28,11 @@ public class KeyBindComponent extends Component {
         isHovered = mouseX >= x + width - 70 && mouseX <= x + width - 10 && mouseY >= y && mouseY <= y + height;
 
         String text = listening ? "Listening..." : setting.getKeyText();
-        context.drawText(mc.textRenderer, "Bind", (int) (x + 2), (int) (y + height / 2 - 4), isLight ? Color.BLACK.getRGB() : Color.WHITE.getRGB(), false);
+        context.drawText(mc.textRenderer, "Bind", (int) (x + 2), (int) (y + height / 2 - 4), isLight ? COLOR_LIGHT_TEXT : COLOR_DARK_TEXT, false);
 
-        int boxColor = isHovered ? new Color(200, 200, 200).getRGB() : new Color(180, 180, 180).getRGB();
+        int boxColor = isHovered ? COLOR_BOX_HOVERED : COLOR_BOX_NORMAL;
         context.fill((int) (x + width - 70), (int) y, (int) (x + width - 10), (int) (y + height), boxColor);
-        context.drawText(mc.textRenderer, Text.literal(text), (int) (x + width - 65), (int) (y + height / 2 - 4), isLight ? Color.BLACK.getRGB() : Color.WHITE.getRGB(), false);
+        context.drawText(mc.textRenderer, Text.literal(text), (int) (x + width - 65), (int) (y + height / 2 - 4), isLight ? COLOR_LIGHT_TEXT : COLOR_DARK_TEXT, false);
     }
 
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {

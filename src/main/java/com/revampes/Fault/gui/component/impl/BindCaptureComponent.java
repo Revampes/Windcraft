@@ -14,6 +14,10 @@ import java.util.function.IntSupplier;
 import static com.revampes.Fault.Revampes.mc;
 
 public class BindCaptureComponent extends Component {
+    private static final int COLOR_BOX_LISTENING = new Color(140, 180, 255).getRGB();
+    private static final int COLOR_BOX_HOVERED = new Color(190, 190, 190).getRGB();
+    private static final int COLOR_BOX_NORMAL = new Color(170, 170, 170).getRGB();
+
     private final String label;
     private final IntSupplier getter;
     private final IntConsumer setter;
@@ -32,15 +36,15 @@ public class BindCaptureComponent extends Component {
         boolean isLight = ModuleManager.ui.isLightTheme();
         isHovered = mouseX >= x && mouseX <= x + width && mouseY >= y && mouseY <= y + height;
 
-        context.drawText(mc.textRenderer, label, (int) (x + 2), (int) (y + height / 2 - 4), isLight ? Color.BLACK.getRGB() : Color.WHITE.getRGB(), false);
+        context.drawText(mc.textRenderer, label, (int) (x + 2), (int) (y + height / 2 - 4), isLight ? COLOR_LIGHT_TEXT : COLOR_DARK_TEXT, false);
 
         int boxW = Math.min(110, Math.max(78, (int) width - 42));
         int boxX = (int) (x + width - boxW);
-        int boxColor = listening ? new Color(140, 180, 255).getRGB() : (isHovered ? new Color(190, 190, 190).getRGB() : new Color(170, 170, 170).getRGB());
+        int boxColor = listening ? COLOR_BOX_LISTENING : (isHovered ? COLOR_BOX_HOVERED : COLOR_BOX_NORMAL);
         context.fill(boxX, (int) y, boxX + boxW, (int) (y + height), boxColor);
 
         String text = listening ? "Listening..." : BindUtils.formatBind(getter.getAsInt());
-        context.drawText(mc.textRenderer, Text.literal(text), boxX + 5, (int) (y + height / 2 - 4), isLight ? Color.BLACK.getRGB() : Color.WHITE.getRGB(), false);
+        context.drawText(mc.textRenderer, Text.literal(text), boxX + 5, (int) (y + height / 2 - 4), isLight ? COLOR_LIGHT_TEXT : COLOR_DARK_TEXT, false);
     }
 
     @Override

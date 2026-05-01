@@ -3,7 +3,17 @@ package com.revampes.Fault.gui.component;
 import net.minecraft.client.gui.DrawContext;
 import com.revampes.Fault.settings.Setting;
 
+import java.awt.Color;
+
 public abstract class Component {
+    // Shared Color Constants
+    protected static final int COLOR_LIGHT_TEXT = Color.BLACK.getRGB();
+    protected static final int COLOR_DARK_TEXT = Color.WHITE.getRGB();
+    protected static final int COLOR_BOX_HOVERED = new Color(200, 200, 200).getRGB();
+    protected static final int COLOR_BOX_NORMAL = new Color(180, 180, 180).getRGB();
+    protected static final int COLOR_BOX_FOCUSED = new Color(200, 200, 255).getRGB();
+    protected static final int COLOR_TEXT_WHITE = Color.WHITE.getRGB();
+
     protected float x, y, width, height;
     protected boolean isHovered;
     protected Setting setting;
@@ -19,6 +29,7 @@ public abstract class Component {
         this(x, y, width, height);
         this.setting = setting;
     }
+
 
     public abstract void render(DrawContext context, int mouseX, int mouseY, float delta);
 

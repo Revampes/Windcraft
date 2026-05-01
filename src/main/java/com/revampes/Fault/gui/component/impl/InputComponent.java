@@ -12,6 +12,8 @@ import java.awt.*;
 import static com.revampes.Fault.Revampes.mc;
 
 public class InputComponent extends Component {
+    private static final int COLOR_PLACEHOLDER_TEXT = Color.GRAY.getRGB();
+
     private final InputSetting setting;
     private boolean focused;
 
@@ -30,18 +32,18 @@ public class InputComponent extends Component {
         boolean isLight = ModuleManager.ui.clickGuiColor.getValue() == 0;
         isHovered = mouseX >= x + width - 150 && mouseX <= x + width - 10 && mouseY >= y && mouseY <= y + height;
 
-        context.drawText(mc.textRenderer, setting.getName(), (int) (x + 2), (int) (y + height / 2 - 4), isLight ? Color.BLACK.getRGB() : Color.WHITE.getRGB(), false);
+        context.drawText(mc.textRenderer, setting.getName(), (int) (x + 2), (int) (y + height / 2 - 4), isLight ? COLOR_LIGHT_TEXT : COLOR_DARK_TEXT, false);
 
-        int boxColor = focused ? new Color(200, 200, 255).getRGB() :
-                (isHovered ? new Color(200, 200, 200).getRGB() : new Color(180, 180, 180).getRGB());
+        int boxColor = focused ? COLOR_BOX_FOCUSED :
+                (isHovered ? COLOR_BOX_HOVERED : COLOR_BOX_NORMAL);
         context.fill((int) (x + width - 150), (int) y, (int) (x + width - 10), (int) (y + height), boxColor);
 
         String displayText = setting.getValue();
         if (displayText.isEmpty() && !focused) {
             displayText = setting.getPlaceholder();
-            context.drawText(mc.textRenderer, Text.literal(displayText), (int) (x + width - 145), (int) (y + height / 2 - 4), Color.GRAY.getRGB(), false);
+            context.drawText(mc.textRenderer, Text.literal(displayText), (int) (x + width - 145), (int) (y + height / 2 - 4), COLOR_PLACEHOLDER_TEXT, false);
         } else {
-            context.drawText(mc.textRenderer, Text.literal(displayText + (focused ? "_" : "")), (int) (x + width - 145), (int) (y + height / 2 - 4), isLight ? Color.BLACK.getRGB() : Color.WHITE.getRGB(), false);
+            context.drawText(mc.textRenderer, Text.literal(displayText + (focused ? "_" : "")), (int) (x + width - 145), (int) (y + height / 2 - 4), isLight ? COLOR_LIGHT_TEXT : COLOR_DARK_TEXT, false);
         }
     }
 

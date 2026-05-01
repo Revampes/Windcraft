@@ -15,6 +15,11 @@ import com.revampes.Fault.utility.Utils;
 public class NotificationManager {
     public static final NotificationManager INSTANCE = new NotificationManager();
     
+    private static final int COLOR_SHADOW = 0x40000000;
+    private static final int COLOR_BACKGROUND = 0x90000000;
+    private static final int COLOR_PROGRESS_BAR = 0xFFFFAA00;
+    private static final int COLOR_TEXT_WHITE = 0xFFFFFF;
+    
     public static class Notification {
         public String id;
         public String baseText;
@@ -116,10 +121,10 @@ public class NotificationManager {
             float startY = yCenter - halfH + stackOffset;
 
             // Draw basic Drop Shadow with rounded edges (lower opacity)
-            drawRoundedRect(context, startX + 3, startY + 3, rectWidth, rectHeight, 4 * scale, 0x40000000);
+            drawRoundedRect(context, startX + 3, startY + 3, rectWidth, rectHeight, 4 * scale, COLOR_SHADOW);
 
             // Background Black Box
-            drawRoundedRect(context, startX, startY, rectWidth, rectHeight, 4 * scale, 0x90000000);
+            drawRoundedRect(context, startX, startY, rectWidth, rectHeight, 4 * scale, COLOR_BACKGROUND);
 
             // Shrinking Progress bar at the bottom
             float barHeight = 2 * scale;
@@ -127,13 +132,13 @@ public class NotificationManager {
             float barStartY = startY + rectHeight - barHeight;
             
             // Draw standard fill for bar inside bounds
-            context.fill((int)startX, (int)barStartY, (int)(startX + barWidth), (int)(barStartY + barHeight), 0xFFFFAA00);
+            context.fill((int)startX, (int)barStartY, (int)(startX + barWidth), (int)(barStartY + barHeight), COLOR_PROGRESS_BAR);
 
             // Draw Text
             if (scale > 0.8) { 
                 float alphaScale = (scale - 0.8f) * 5.0f; // 0 to 1
                 int alpha = (int)(255 * alphaScale);
-                int argb = (alpha << 24) | 0xFFFFFF;
+                int argb = (alpha << 24) | COLOR_TEXT_WHITE;
                 context.drawTextWithShadow(font, displayString, (int)(xCenter - textWidth / 2.0f), (int)(startY + padding), argb);
             }
             

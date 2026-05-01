@@ -10,6 +10,14 @@ import java.awt.Color;
 import static com.revampes.Fault.Revampes.mc;
 
 public class ColorComponent extends Component {
+    private static final int COLOR_TEXT_LIGHT = 0xFF000000;
+    private static final int COLOR_TEXT_DARK = 0xFFFFFFFF;
+    private static final int COLOR_INDICATOR_BORDER = 0xFF000000;
+    private static final int COLOR_INDICATOR_FILL = 0xFFFFFFFF;
+    private static final int COLOR_CHECKERBOARD_DARK = 0xFF888888;
+    private static final int COLOR_CHECKERBOARD_LIGHT = 0xFFDDDDDD;
+    private static final int COLOR_SV_BOX_BACKGROUND = 0xFF000000;
+
     private final ColorSetting setting;
     private int draggingMode = 0; // 0=none, 1=SV, 2=Hue, 3=Alpha
     
@@ -57,7 +65,7 @@ public class ColorComponent extends Component {
         }
 
         boolean isLight = ModuleManager.ui.clickGuiColor.getValue() == 0;
-        int textColor = isLight ? 0xFF000000 : 0xFFFFFFFF;
+        int textColor = isLight ? COLOR_TEXT_LIGHT : COLOR_TEXT_DARK;
 
         float baseHeight = super.getHeight();
         
@@ -105,13 +113,13 @@ public class ColorComponent extends Component {
                 int c = Color.HSBtoRGB(hue, s, v);
                 int endX = (int)Math.min(sx + i + res, sx + sw);
                 int endY = (int)Math.min(sy + j + res, sy + sh);
-                context.fill((int)(sx + i), (int)(sy + j), endX, endY, c | 0xFF000000);
+                context.fill((int)(sx + i), (int)(sy + j), endX, endY, c | COLOR_SV_BOX_BACKGROUND);
             }
         }
         int indicatorX = (int)(sx + (saturation * sw));
         int indicatorY = (int)(sy + ((1.0f - brightness) * sh));
-        context.fill(indicatorX - 1, indicatorY - 1, indicatorX + 2, indicatorY + 2, 0xFF000000);
-        context.fill(indicatorX, indicatorY, indicatorX + 1, indicatorY + 1, 0xFFFFFFFF);
+        context.fill(indicatorX - 1, indicatorY - 1, indicatorX + 2, indicatorY + 2, COLOR_INDICATOR_BORDER);
+        context.fill(indicatorX, indicatorY, indicatorX + 1, indicatorY + 1, COLOR_INDICATOR_FILL);
     }
 
     private void drawHueSlider(DrawContext context, float sx, float sy, float sw, float sh) {
@@ -120,11 +128,11 @@ public class ColorComponent extends Component {
             float h = i / sw;
             int c = Color.HSBtoRGB(h, 1.0f, 1.0f);
             int endX = (int)Math.min(sx + i + res, sx + sw);
-            context.fill((int)(sx + i), (int)sy, endX, (int)(sy + sh), c | 0xFF000000);
+            context.fill((int)(sx + i), (int)sy, endX, (int)(sy + sh), c | COLOR_SV_BOX_BACKGROUND);
         }
         int indicatorX = (int)(sx + (hue * sw));
-        context.fill(indicatorX - 1, (int)sy, indicatorX + 2, (int)(sy + sh), 0xFF000000);
-        context.fill(indicatorX, (int)sy, indicatorX + 1, (int)(sy + sh), 0xFFFFFFFF);
+        context.fill(indicatorX - 1, (int)sy, indicatorX + 2, (int)(sy + sh), COLOR_INDICATOR_BORDER);
+        context.fill(indicatorX, (int)sy, indicatorX + 1, (int)(sy + sh), COLOR_INDICATOR_FILL);
     }
 
     private void drawAlphaSlider(DrawContext context, float sx, float sy, float sw, float sh) {
@@ -134,7 +142,7 @@ public class ColorComponent extends Component {
         for (float i = 0; i < sw; i += res) {
             float a = i / sw;
             boolean dark = ((int)(i / 5) % 2 == 0);
-            int bgC = dark ? 0xFF888888 : 0xFFDDDDDD;
+            int bgC = dark ? COLOR_CHECKERBOARD_DARK : COLOR_CHECKERBOARD_LIGHT;
             int c = ((int)(a * 255) << 24) | rgbClean;
             int endX = (int)Math.min(sx + i + res, sx + sw);
             context.fill((int)(sx + i), (int)sy, endX, (int)(sy + sh), bgC);
@@ -143,8 +151,8 @@ public class ColorComponent extends Component {
             context.fill((int)(sx + i), (int)sy, endX, (int)(sy + sh), c);
         }
         int indicatorX = (int)(sx + (setting.getAlpha() / 255.0f * sw));
-        context.fill(indicatorX - 1, (int)sy, indicatorX + 2, (int)(sy + sh), 0xFF000000);
-        context.fill(indicatorX, (int)sy, indicatorX + 1, (int)(sy + sh), 0xFFFFFFFF);
+        context.fill(indicatorX - 1, (int)sy, indicatorX + 2, (int)(sy + sh), COLOR_INDICATOR_BORDER);
+        context.fill(indicatorX, (int)sy, indicatorX + 1, (int)(sy + sh), COLOR_INDICATOR_FILL);
     }
 
     private void applyHSB() {

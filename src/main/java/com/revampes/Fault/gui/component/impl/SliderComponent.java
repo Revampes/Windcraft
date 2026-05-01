@@ -11,6 +11,10 @@ import java.awt.*;
 import static com.revampes.Fault.Revampes.mc;
 
 public class SliderComponent extends Component {
+    private static final int COLOR_SLIDER_TRACK = new Color(180, 180, 180).getRGB();
+    private static final int COLOR_SLIDER_FILL = new Color(100, 100, 255).getRGB();
+    private static final int COLOR_SLIDER_THUMB = Color.BLUE.getRGB();
+
     private final SliderSetting setting;
     private boolean draggingMin;
     private boolean draggingMax;
@@ -34,7 +38,7 @@ public class SliderComponent extends Component {
         float sliderStartX = x + width / 3;
         float sliderEndX = x + width - 5;
         float sliderWidth = sliderEndX - sliderStartX;
-        context.fill((int) sliderStartX, sliderY, (int) sliderEndX, sliderY + 3, new Color(180, 180, 180).getRGB());
+        context.fill((int) sliderStartX, sliderY, (int) sliderEndX, sliderY + 3, COLOR_SLIDER_TRACK);
 
         if (setting.isRange()) {
             double minValue = setting.getInputMin();
@@ -51,10 +55,10 @@ public class SliderComponent extends Component {
             }
 
             // draw range
-            context.fill((int) (sliderStartX + minPos), sliderY, (int) (sliderStartX + maxPos), sliderY + 3, new Color(100, 100, 255).getRGB());
+            context.fill((int) (sliderStartX + minPos), sliderY, (int) (sliderStartX + maxPos), sliderY + 3, COLOR_SLIDER_FILL);
 
-            context.fill((int) (sliderStartX + minPos - 2), sliderY - 2, (int) (sliderStartX + minPos + 2), sliderY + 5, Color.BLUE.getRGB());
-            context.fill((int) (sliderStartX + maxPos - 2), sliderY - 2, (int) (sliderStartX + maxPos + 2), sliderY + 5, Color.BLUE.getRGB());
+            context.fill((int) (sliderStartX + minPos - 2), sliderY - 2, (int) (sliderStartX + minPos + 2), sliderY + 5, COLOR_SLIDER_THUMB);
+            context.fill((int) (sliderStartX + maxPos - 2), sliderY - 2, (int) (sliderStartX + maxPos + 2), sliderY + 5, COLOR_SLIDER_THUMB);
         } else {
             double value = setting.getInput();
             double pos = ((value - setting.getMin()) / (setting.getMax() - setting.getMin())) * sliderWidth;
@@ -63,13 +67,13 @@ public class SliderComponent extends Component {
                 pos = sliderWidth;
             }
 
-            context.fill((int) sliderStartX, sliderY, (int) (sliderStartX + pos), sliderY + 3, new Color(100, 100, 255).getRGB());
-            context.fill((int) (sliderStartX + pos - 2), sliderY - 2, (int) (sliderStartX + pos + 2), sliderY + 5, Color.BLUE.getRGB());
+            context.fill((int) sliderStartX, sliderY, (int) (sliderStartX + pos), sliderY + 3, COLOR_SLIDER_FILL);
+            context.fill((int) (sliderStartX + pos - 2), sliderY - 2, (int) (sliderStartX + pos + 2), sliderY + 5, COLOR_SLIDER_THUMB);
         }
 
         String displayText = setting.getName() + ": " + (setting.isRange() ?
                 String.format("%.2f-%.2f", setting.getInputMin(), setting.getInputMax()) : String.format("%.2f", setting.getInput())) + setting.getSuffix();
-        context.drawText(mc.textRenderer, Text.literal(displayText), (int) (x + 2), (int) (y + height / 2 - 4), isLight ? Color.BLACK.getRGB() : Color.WHITE.getRGB(), false);
+        context.drawText(mc.textRenderer, Text.literal(displayText), (int) (x + 2), (int) (y + height / 2 - 4), isLight ? COLOR_LIGHT_TEXT : COLOR_DARK_TEXT, false);
     }
 
     @Override

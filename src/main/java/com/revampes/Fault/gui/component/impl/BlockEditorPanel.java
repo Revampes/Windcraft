@@ -23,6 +23,41 @@ public class BlockEditorPanel extends Component {
     private static final float ROW_HEIGHT = 32f;
     private static final float BODY_PADDING = 10f;
 
+    // Color constants
+    private static final int COLOR_BORDER_LIGHT = 0xFF000000;
+    private static final int COLOR_BORDER_DARK = 0xFFFFFFFF;
+    private static final int COLOR_BACKGROUND_LIGHT = new Color(235, 235, 235).getRGB();
+    private static final int COLOR_BACKGROUND_DARK = new Color(55, 55, 55).getRGB();
+    private static final int COLOR_PALETTE_LIGHT = new Color(245, 245, 245).getRGB();
+    private static final int COLOR_PALETTE_DARK = new Color(68, 68, 68).getRGB();
+    private static final int COLOR_WORKSPACE_LIGHT = new Color(225, 225, 225).getRGB();
+    private static final int COLOR_WORKSPACE_DARK = new Color(62, 62, 62).getRGB();
+    private static final int COLOR_PALETTE_ITEM_HOVERED = new Color(150, 170, 240).getRGB();
+    private static final int COLOR_PALETTE_ITEM_NORMAL = new Color(120, 120, 120).getRGB();
+    private static final int COLOR_TEXT_DARK_GRAY = Color.DARK_GRAY.getRGB();
+    private static final int COLOR_TEXT_LIGHT_GRAY = Color.LIGHT_GRAY.getRGB();
+    private static final int COLOR_INSERT_INDICATOR = 0xFFFFFF00;
+    private static final int COLOR_VALUE_CHIP_EDITING = new Color(255, 215, 120).getRGB();
+    private static final int COLOR_VALUE_CHIP_NORMAL = new Color(90, 90, 90).getRGB();
+    private static final int COLOR_CONTAINER_CHIP = new Color(75, 105, 165).getRGB();
+    private static final int COLOR_CHILD_COUNT_CHIP = new Color(100, 100, 100).getRGB();
+    private static final int COLOR_OPEN_TEXT = new Color(220, 220, 220).getRGB();
+    private static final int COLOR_BACK_BUTTON = new Color(120, 120, 120).getRGB();
+    
+    // Block type colors
+    private static final int COLOR_BLOCK_REPEAT = new Color(120, 70, 160).getRGB();
+    private static final int COLOR_BLOCK_CAST_SPELL = new Color(65, 140, 200).getRGB();
+    private static final int COLOR_BLOCK_WAIT = new Color(160, 110, 55).getRGB();
+    private static final int COLOR_BLOCK_LEFT_CLICK = new Color(55, 150, 85).getRGB();
+    private static final int COLOR_BLOCK_RIGHT_CLICK = new Color(160, 70, 70).getRGB();
+    private static final int COLOR_BLOCK_WHEN_TRIGGER = new Color(90, 120, 190).getRGB();
+
+    private float workspaceScrollOffset = 0f;  // Scroll position for workspace blocks
+    private float paletteScrollOffset = 0f;    // Scroll position for palette items
+    private float maxWorkspaceScroll = 0f;     // Maximum workspace scroll
+    private float maxPaletteScroll = 0f;       // Maximum palette scroll
+    private static final float SCROLL_SPEED = 15f;
+
     private final List<BlockNode> rootBlocks;
     private final List<BlockLayout> layouts = new ArrayList<>();
     private final List<PaletteLayout> paletteLayouts = new ArrayList<>();
@@ -53,6 +88,7 @@ public class BlockEditorPanel extends Component {
 
     public void resetScope() {
         scopeStack.clear();
+        workspaceScrollOffset = 0f;
         editingValueBlock = null;
         editingBuffer = "";
     }
@@ -65,14 +101,63 @@ public class BlockEditorPanel extends Component {
         return scopeStack.peek();
     }
 
+    private void updatePaletteScrollBounds() {
+        int numPaletteItems = BlockType.paletteValues().length;
+        float totalPaletteHeight = numPaletteItems * (ROW_HEIGHT + 4);
+        float paletteViewHeight = height - HEADER_HEIGHT - 16;
+        maxPaletteScroll = Math.max(0, totalPaletteHeight - paletteViewHeight);
+        paletteScrollOffset = Math.max(0, Math.min(paletteScrollOffset, maxPaletteScroll));
+    }
+
+    private void updateWorkspaceScrollBounds() {
+        float totalWorkspaceHeight = 0f;
+        List<BlockNode> blocks = getCurrentBlocks();
+        for (BlockNode block : blocks) {
+            totalWorkspaceHeight += getBlockHeight(block) + 6;
+        }
+        float workspaceViewHeight = height - HEADER_HEIGHT - 16;
+        maxWorkspaceScroll = Math.max(0, totalWorkspaceHeight - workspaceViewHeight);
+        workspaceScrollOffset = Math.max(0, Math.min(workspaceScrollOffset, maxWorkspaceScroll));
+    }
+
+    public boolean mouseScrolled(double mouseX, double mouseY, double horizontalAmount, double verticalAmount) {
+        if (!isHovered) return false;
+
+        float paletteX = x + 8;
+        float workspaceX = x + PALETTE_WIDTH + 14;
+        float workspaceW = width - PALETTE_WIDTH - 22;
+        float paletteY = y + 8;
+        float workspaceBottom = y + height - 8;
+
+        // Check if scrolling in palette area
+        if (mouseX >= paletteX && mouseX <= paletteX + PALETTE_WIDTH - 10 &&
+                mouseY >= paletteY + HEADER_HEIGHT && mouseY <= workspaceBottom) {
+            paletteScrollOffset -= verticalAmount * SCROLL_SPEED;
+            updatePaletteScrollBounds();
+            return true;
+        }
+
+        // Check if scrolling in workspace area
+        if (mouseX >= workspaceX && mouseX <= workspaceX + workspaceW &&
+                mouseY >= paletteY + HEADER_HEIGHT && mouseY <= workspaceBottom) {
+            workspaceScrollOffset -= verticalAmount * SCROLL_SPEED;
+            updateWorkspaceScrollBounds();
+            return true;
+        }
+
+        return false;
+    }
     @Override
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
         isHovered = isPointInside(mouseX, mouseY);
+        updatePaletteScrollBounds();
+        updateWorkspaceScrollBounds();
+        
         boolean isLight = ModuleManager.ui.isLightTheme();
-        int borderColor = isLight ? 0xFF000000 : 0xFFFFFFFF;
-        int backgroundColor = ModuleManager.ui.useCustomColors() ? ModuleManager.ui.panelColor.getRGB() : (isLight ? new Color(235, 235, 235).getRGB() : new Color(55, 55, 55).getRGB());
-        int paletteColor = ModuleManager.ui.useCustomColors() ? ModuleManager.ui.panelColor.getRGB() : (isLight ? new Color(245, 245, 245).getRGB() : new Color(68, 68, 68).getRGB());
-        int workspaceColor = ModuleManager.ui.useCustomColors() ? ModuleManager.ui.panelColor.getRGB() : (isLight ? new Color(225, 225, 225).getRGB() : new Color(62, 62, 62).getRGB());
+        int borderColor = isLight ? COLOR_BORDER_LIGHT : COLOR_BORDER_DARK;
+        int backgroundColor = ModuleManager.ui.useCustomColors() ? ModuleManager.ui.panelColor.getRGB() : (isLight ? COLOR_BACKGROUND_LIGHT : COLOR_BACKGROUND_DARK);
+        int paletteColor = ModuleManager.ui.useCustomColors() ? ModuleManager.ui.panelColor.getRGB() : (isLight ? COLOR_PALETTE_LIGHT : COLOR_PALETTE_DARK);
+        int workspaceColor = ModuleManager.ui.useCustomColors() ? ModuleManager.ui.panelColor.getRGB() : (isLight ? COLOR_WORKSPACE_LIGHT : COLOR_WORKSPACE_DARK);
 
         context.fill((int) x, (int) y, (int) (x + width), (int) (y + height), backgroundColor);
         RenderUtils.drawBorder(context, (int) x, (int) y, (int) width, (int) height, borderColor);
@@ -85,37 +170,49 @@ public class BlockEditorPanel extends Component {
         context.fill((int) paletteX, (int) paletteY, (int) (paletteX + PALETTE_WIDTH - 10), (int) (y + height - 8), paletteColor);
         context.fill((int) workspaceX, (int) paletteY, (int) (workspaceX + workspaceW), (int) (y + height - 8), workspaceColor);
 
-        context.drawText(mc.textRenderer, Text.literal("Blocks"), (int) (paletteX + 8), (int) (paletteY + 5), isLight ? Color.BLACK.getRGB() : Color.WHITE.getRGB(), false);
+        context.drawText(mc.textRenderer, Text.literal("Blocks"), (int) (paletteX + 8), (int) (paletteY + 5), isLight ? COLOR_LIGHT_TEXT : COLOR_DARK_TEXT, false);
 
         paletteLayouts.clear();
-        float paletteItemY = paletteY + 22;
+        float paletteItemY = paletteY + 22 - paletteScrollOffset;
         for (BlockType type : BlockType.paletteValues()) {
             paletteLayouts.add(new PaletteLayout(type, paletteX + 8, paletteItemY, PALETTE_WIDTH - 26, ROW_HEIGHT - 2));
             paletteItemY += ROW_HEIGHT + 4;
         }
 
+        // Enable scissor for palette area
+        int paletteScissorY1 = (int) (paletteY + HEADER_HEIGHT);
+        int paletteScissorY2 = (int) (y + height - 8);
+        context.enableScissor((int) paletteX, paletteScissorY1, (int) (paletteX + PALETTE_WIDTH - 10), paletteScissorY2);
+
         for (PaletteLayout layout : paletteLayouts) {
             boolean hovered = layout.contains(mouseX, mouseY);
-            int fill = hovered ? new Color(150, 170, 240).getRGB() : new Color(120, 120, 120).getRGB();
+            int fill = hovered ? COLOR_PALETTE_ITEM_HOVERED : COLOR_PALETTE_ITEM_NORMAL;
             context.fill((int) layout.x, (int) layout.y, (int) (layout.x + layout.width), (int) (layout.y + layout.height), fill);
             context.drawText(mc.textRenderer, Text.literal(layout.type.getLabel()), (int) (layout.x + 6), (int) (layout.y + 9), Color.WHITE.getRGB(), false);
         }
 
-        context.drawText(mc.textRenderer, Text.literal(headerSupplier == null ? "When ? button is being clicked then" : headerSupplier.get()), (int) (workspaceX + 8), (int) (paletteY + 5), isLight ? Color.BLACK.getRGB() : Color.WHITE.getRGB(), false);
+        context.disableScissor();
+
+        context.drawText(mc.textRenderer, Text.literal(headerSupplier == null ? "When ? button is being clicked then" : headerSupplier.get()), (int) (workspaceX + 8), (int) (paletteY + 5), isLight ? COLOR_LIGHT_TEXT : COLOR_DARK_TEXT, false);
 
         if (!scopeStack.isEmpty()) {
             int backX = (int) (workspaceX + workspaceW - 54);
             int backY = (int) (paletteY + 2);
-            context.fill(backX, backY, backX + 46, backY + 18, new Color(120, 120, 120).getRGB());
+            context.fill(backX, backY, backX + 46, backY + 18, COLOR_BACK_BUTTON);
             context.drawText(mc.textRenderer, Text.literal("Back"), backX + 10, backY + 5, Color.WHITE.getRGB(), false);
         }
 
         layouts.clear();
-        float currentY = paletteY + HEADER_HEIGHT + 4;
+        float currentY = paletteY + HEADER_HEIGHT + 4 - workspaceScrollOffset;
         List<BlockNode> blocks = getCurrentBlocks();
         if (blocks.isEmpty()) {
-            context.drawText(mc.textRenderer, Text.literal("Drop or click blocks here."), (int) (workspaceX + 10), (int) currentY, isLight ? Color.DARK_GRAY.getRGB() : Color.LIGHT_GRAY.getRGB(), false);
+            context.drawText(mc.textRenderer, Text.literal("Drop or click blocks here."), (int) (workspaceX + 10), (int) currentY, isLight ? COLOR_TEXT_DARK_GRAY : COLOR_TEXT_LIGHT_GRAY, false);
         }
+
+        // Enable scissor for workspace area
+        int workspaceScissorY1 = (int) (paletteY + HEADER_HEIGHT);
+        int workspaceScissorY2 = (int) (y + height - 8);
+        context.enableScissor((int) workspaceX, workspaceScissorY1, (int) (workspaceX + workspaceW), workspaceScissorY2);
 
         for (int i = 0; i < blocks.size(); i++) {
             BlockNode block = blocks.get(i);
@@ -135,7 +232,7 @@ public class BlockEditorPanel extends Component {
         if (draggingBlock != null) {
             for (BlockLayout layout : layouts) {
                 if (mouseY < layout.y + (layout.height / 2f)) {
-                    context.fill((int) layout.x, (int) layout.y - 2, (int) (layout.x + layout.width), (int) layout.y, 0xFFFFFF00);
+                    context.fill((int) layout.x, (int) layout.y - 2, (int) (layout.x + layout.width), (int) layout.y, COLOR_INSERT_INDICATOR);
                     break;
                 }
             }
@@ -143,6 +240,8 @@ public class BlockEditorPanel extends Component {
             float ghostY = draggingMouseY - 16;
             drawBlock(context, draggingBlock, workspaceX + 14, ghostY, workspaceW - 28, getBlockHeight(draggingBlock), mouseX, mouseY, true);
         }
+
+        context.disableScissor();
 
         if (editingValueBlock != null) {
             context.drawText(mc.textRenderer, Text.literal("Editing value: " + editingBuffer), (int) (workspaceX + 8), (int) (y + height - 18), Color.WHITE.getRGB(), false);
@@ -153,7 +252,7 @@ public class BlockEditorPanel extends Component {
         boolean isLight = ModuleManager.ui.isLightTheme();
         int color = getBlockColor(block.type, ghost);
         context.fill((int) blockX, (int) blockY, (int) (blockX + blockW), (int) (blockY + blockH), color);
-        RenderUtils.drawBorder(context, (int) blockX, (int) blockY, (int) blockW, (int) blockH, isLight ? 0xFF000000 : 0xFFFFFFFF);
+        RenderUtils.drawBorder(context, (int) blockX, (int) blockY, (int) blockW, (int) blockH, isLight ? COLOR_BORDER_LIGHT : COLOR_BORDER_DARK);
 
         context.drawText(mc.textRenderer, Text.literal(blockLabel(block)), (int) (blockX + 6), (int) (blockY + 8), Color.WHITE.getRGB(), false);
 
@@ -161,26 +260,26 @@ public class BlockEditorPanel extends Component {
             int chipW = 48;
             int chipX = (int) (blockX + blockW - chipW - 48);
             int chipY = (int) (blockY + 7);
-            context.fill(chipX, chipY, chipX + chipW, chipY + 18, editingValueBlock == block ? new Color(255, 215, 120).getRGB() : new Color(90, 90, 90).getRGB());
+            context.fill(chipX, chipY, chipX + chipW, chipY + 18, editingValueBlock == block ? COLOR_VALUE_CHIP_EDITING : COLOR_VALUE_CHIP_NORMAL);
             context.drawText(mc.textRenderer, Text.literal(editingValueBlock == block ? editingBuffer : String.valueOf(block.value)), chipX + 6, chipY + 5, Color.WHITE.getRGB(), false);
         }
 
         if (block.type.isContainer()) {
             int chipX = (int) (blockX + blockW - 40);
             int chipY = (int) (blockY + 7);
-            context.fill(chipX, chipY, chipX + 32, chipY + 18, new Color(75, 105, 165).getRGB());
+            context.fill(chipX, chipY, chipX + 32, chipY + 18, COLOR_CONTAINER_CHIP);
             context.drawText(mc.textRenderer, Text.literal(scopeStack.peek() == block ? "<" : ">"), chipX + 12, chipY + 5, Color.WHITE.getRGB(), false);
         }
 
         if (block.type == BlockType.REPEAT) {
             int childCountX = (int) (blockX + blockW - 74);
             int childCountY = (int) (blockY + 7);
-            context.fill(childCountX, childCountY, childCountX + 28, childCountY + 18, new Color(100, 100, 100).getRGB());
+            context.fill(childCountX, childCountY, childCountX + 28, childCountY + 18, COLOR_CHILD_COUNT_CHIP);
             context.drawText(mc.textRenderer, Text.literal(String.valueOf(block.children.size())), childCountX + 10, childCountY + 5, Color.WHITE.getRGB(), false);
         }
 
         if (block.type.isContainer() && block.type == BlockType.REPEAT) {
-            context.drawText(mc.textRenderer, Text.literal("open"), (int) (blockX + 6), (int) (blockY + blockH - 10), new Color(220, 220, 220).getRGB(), false);
+            context.drawText(mc.textRenderer, Text.literal("open"), (int) (blockX + 6), (int) (blockY + blockH - 10), COLOR_OPEN_TEXT, false);
         }
     }
 
@@ -350,6 +449,7 @@ public class BlockEditorPanel extends Component {
 
     private void enterScope(BlockNode node) {
         scopeStack.push(node);
+        workspaceScrollOffset = 0f;
         editingValueBlock = null;
         editingBuffer = "";
     }
@@ -357,6 +457,7 @@ public class BlockEditorPanel extends Component {
     private void exitScope() {
         if (!scopeStack.isEmpty()) {
             scopeStack.pop();
+            workspaceScrollOffset = 0f;
         }
     }
 

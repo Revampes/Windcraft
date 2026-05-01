@@ -16,6 +16,21 @@ import java.awt.*;
 import static com.revampes.Fault.Revampes.mc;
 
 public class ModuleComponent extends Component {
+    private static final int COLOR_BORDER = 0xFF000000;
+    private static final int COLOR_ENABLED_LIGHT = new Color(220, 220, 255).getRGB();
+    private static final int COLOR_ENABLED_DARK = new Color(100, 100, 180).getRGB();
+    private static final int COLOR_DISABLED_LIGHT = new Color(240, 240, 240).getRGB();
+    private static final int COLOR_DISABLED_DARK = new Color(60, 60, 60).getRGB();
+    private static final int COLOR_HOVER_OVERLAY_LIGHT = 0x50000000;
+    private static final int COLOR_HOVER_OVERLAY_DARK = 0x50FFFFFF;
+    private static final int COLOR_HIDDEN_TEXT = new Color(255, 100, 100).getRGB();
+    private static final int COLOR_DESC_BUTTON_HOVERED_LIGHT = new Color(200, 200, 200).getRGB();
+    private static final int COLOR_DESC_BUTTON_HOVERED_DARK = new Color(120, 120, 120).getRGB();
+    private static final int COLOR_DESC_BUTTON_NORMAL_LIGHT = new Color(180, 180, 180).getRGB();
+    private static final int COLOR_DESC_BUTTON_NORMAL_DARK = new Color(90, 90, 90).getRGB();
+    private static final int COLOR_SETTINGS_BACKGROUND_LIGHT = new Color(230, 230, 230).getRGB();
+    private static final int COLOR_SETTINGS_BACKGROUND_DARK = new Color(70, 70, 70).getRGB();
+
     private final Module module;
     private boolean expanded;
     private final List<Component> settingComponents;
@@ -71,18 +86,18 @@ public class ModuleComponent extends Component {
         boolean isLight = ModuleManager.ui.isLightTheme();
         int borderColor = isLight ? 0xFF000000 : 0xFFFFFFFF;
         int enabledColor = ModuleManager.ui.useCustomColors() ? ModuleManager.ui.moduleEnabledColor.getRGB()
-                : (isLight ? new Color(220, 220, 255).getRGB() : new Color(100, 100, 180).getRGB());
+                : (isLight ? COLOR_ENABLED_LIGHT : COLOR_ENABLED_DARK);
         int disabledColor = ModuleManager.ui.useCustomColors() ? ModuleManager.ui.panelColor.getRGB()
-                : (isLight ? new Color(240, 240, 240).getRGB() : new Color(60, 60, 60).getRGB());
+                : (isLight ? COLOR_DISABLED_LIGHT : COLOR_DISABLED_DARK);
 
         RenderUtils.drawBorder(context, (int) x, (int) y, (int) width, (int) height, borderColor);
         int bgColor = module.isEnabled() ? enabledColor : disabledColor;
         context.fill((int) x + 1, (int) y + 1, (int) (x + width - 1), (int) (y + height - 1), bgColor);
         int hoverOverlay = ((int) (MathHelper.clamp(hoverAnimation, 0.0f, 1.0f) * 50.0f) << 24) | 0x00FFFFFF;
         context.fill((int) x + 1, (int) y + 1, (int) (x + width - 1), (int) (y + height - 1), hoverOverlay);
-        context.fill((int) x + 2, (int) (y + height), (int) (x + width - 2), (int) (y + height + 2), isLight ? 0x50000000 : 0x50FFFFFF);
+        context.fill((int) x + 2, (int) (y + height), (int) (x + width - 2), (int) (y + height + 2), isLight ? COLOR_HOVER_OVERLAY_LIGHT : COLOR_HOVER_OVERLAY_DARK);
 
-        context.drawText(mc.textRenderer, module.getName(), (int) (x + 5), (int) (y + height / 2 - 4), isLight ? (module.isHidden() ? (new Color(255, 100, 100).getRGB()) : Color.BLACK.getRGB()) : (module.isHidden() ? (new Color(255, 100, 100).getRGB()) : Color.WHITE.getRGB()), false);
+        context.drawText(mc.textRenderer, module.getName(), (int) (x + 5), (int) (y + height / 2 - 4), isLight ? (module.isHidden() ? COLOR_HIDDEN_TEXT : COLOR_LIGHT_TEXT) : (module.isHidden() ? COLOR_HIDDEN_TEXT : COLOR_DARK_TEXT), false);
 
         // description
         boolean descHovered = false;
@@ -96,10 +111,10 @@ public class ModuleComponent extends Component {
                     mouseY >= descButtonY && mouseY <= descButtonY + descButtonHeight;
 
             int descButtonColor = descHovered
-                    ? (isLight ? new Color(200, 200, 200).getRGB() : new Color(120, 120, 120).getRGB())
-                    : (isLight ? new Color(180, 180, 180).getRGB() : new Color(90, 90, 90).getRGB());
+                    ? (isLight ? COLOR_DESC_BUTTON_HOVERED_LIGHT : COLOR_DESC_BUTTON_HOVERED_DARK)
+                    : (isLight ? COLOR_DESC_BUTTON_NORMAL_LIGHT : COLOR_DESC_BUTTON_NORMAL_DARK);
             context.fill(descButtonX, descButtonY, descButtonX + descButtonWidth, descButtonY + descButtonHeight, descButtonColor);
-            context.drawText(mc.textRenderer, Text.literal("?"), descButtonX + 6, descButtonY + (descButtonHeight / 2 - 4), isLight ? Color.BLACK.getRGB() : Color.WHITE.getRGB(), false);
+            context.drawText(mc.textRenderer, Text.literal("?"), descButtonX + 6, descButtonY + (descButtonHeight / 2 - 4), isLight ? COLOR_LIGHT_TEXT : COLOR_DARK_TEXT, false);
         }
 
         // Draw expanded settings
@@ -109,7 +124,7 @@ public class ModuleComponent extends Component {
                 if (component.isVisible()) {
                     component.updatePosition(x + 5, currentY);
                     int settingsBg = ModuleManager.ui.useCustomColors() ? ModuleManager.ui.panelColor.getRGB()
-                            : (isLight ? new Color(230, 230, 230).getRGB() : new Color(70, 70, 70).getRGB());
+                            : (isLight ? COLOR_SETTINGS_BACKGROUND_LIGHT : COLOR_SETTINGS_BACKGROUND_DARK);
                     context.fill((int) (x + 5), (int) currentY, (int) (x + width - 5), (int) (currentY + component.getHeight()), settingsBg);
                     component.render(context, mouseX, mouseY, delta);
                     currentY += component.getHeight() + settingSpacing;

@@ -31,6 +31,11 @@ public class ClickGui extends Screen {
     private static ClickGui instance;
     private static final float BASE_WIDTH = 450.0f;
     private static final float BASE_HEIGHT = 300.0f;
+    
+    private static final int COLOR_TEXT_WHITE = Color.WHITE.getRGB();
+    private static final int COLOR_BUTTON_HOVERED = new Color(255, 255, 255, 65).getRGB();
+    private static final int COLOR_BUTTON_NORMAL = new Color(20, 20, 20, 110).getRGB();
+    
     private float x, y, width, height;
     private boolean dragging;
     private float dragX, dragY;
@@ -224,13 +229,13 @@ public class ClickGui extends Screen {
         // Draw GUI bg
         context.fill((int) x, (int) y, (int) (x + width), (int) (y + height), getBackgroundColor());
         context.fill((int) x, (int) y, (int) (x + width), (int) (y + 20), accentColor);
-        context.drawCenteredTextWithShadow(mc.textRenderer, "Revampes 1.0.0", (int) (x + width / 2), (int) (y + 6), Color.WHITE.getRGB());
+        context.drawCenteredTextWithShadow(mc.textRenderer, "Revampes 1.0.0", (int) (x + width / 2), (int) (y + 6), COLOR_TEXT_WHITE);
 
         int editBtnX = (int) (x + width - 60);
         int editBtnY = (int) y + 2;
         boolean editHovered = mouseX >= editBtnX && mouseX <= editBtnX + 55 && mouseY >= editBtnY && mouseY <= editBtnY + 16;
-        context.fill(editBtnX, editBtnY, editBtnX + 55, editBtnY + 16, editHovered ? new Color(255, 255, 255, 65).getRGB() : new Color(20, 20, 20, 110).getRGB());
-        context.drawText(mc.textRenderer, "Edit HUD", editBtnX + 6, editBtnY + 4, Color.WHITE.getRGB(), true);
+        context.fill(editBtnX, editBtnY, editBtnX + 55, editBtnY + 16, editHovered ? COLOR_BUTTON_HOVERED : COLOR_BUTTON_NORMAL);
+        context.drawText(mc.textRenderer, "Edit HUD", editBtnX + 6, editBtnY + 4, COLOR_TEXT_WHITE, true);
 
         context.fill((int) (x + 5), (int) (y + 25), (int) (x + 65), (int) (y + height - 5), getSidebarColor());
         context.fill((int) (x + 75), (int) (y + 25), (int) (x + width - 5), (int) (y + height - 5), getContentColor());
@@ -309,7 +314,7 @@ public class ClickGui extends Screen {
                 context.fill(descX, descY, descX + descWidth, descY + descHeight, accentColor);
 
                 for (int i = 0; i < wrappedText.size(); i++) {
-                    context.drawText(mc.textRenderer, wrappedText.get(i), descX + 5, descY + 5 + (i * 10), Color.WHITE.getRGB(), false);
+                    context.drawText(mc.textRenderer, wrappedText.get(i), descX + 5, descY + 5 + (i * 10), COLOR_TEXT_WHITE, false);
                 }
             }
             moduleY += component.getTotalHeight();

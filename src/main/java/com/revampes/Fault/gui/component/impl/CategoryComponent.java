@@ -12,6 +12,13 @@ import java.awt.*;
 import static com.revampes.Fault.Revampes.mc;
 
 public class CategoryComponent extends Component {
+    private static final int COLOR_SELECTED_LIGHT = new Color(100, 100, 255).getRGB();
+    private static final int COLOR_SELECTED_DARK = new Color(60, 60, 180).getRGB();
+    private static final int COLOR_HOVERED_LIGHT = new Color(200, 200, 200).getRGB();
+    private static final int COLOR_HOVERED_DARK = new Color(120, 120, 120).getRGB();
+    private static final int COLOR_NORMAL_LIGHT = new Color(180, 180, 180).getRGB();
+    private static final int COLOR_NORMAL_DARK = new Color(80, 80, 80).getRGB();
+
     private final Module.category category;
     private boolean selected;
     private float hoverAnimation = 0.0f;
@@ -32,18 +39,18 @@ public class CategoryComponent extends Component {
         int color;
         if (selected) {
             color = ModuleManager.ui.useCustomColors() ? ModuleManager.ui.accentColor.getRGB()
-                    : (isLight ? new Color(100, 100, 255).getRGB() : new Color(60, 60, 180).getRGB());
+                    : (isLight ? COLOR_SELECTED_LIGHT : COLOR_SELECTED_DARK);
         } else if (isHovered) {
-            color = isLight ? new Color(200, 200, 200).getRGB() : new Color(120, 120, 120).getRGB();
+            color = isLight ? COLOR_HOVERED_LIGHT : COLOR_HOVERED_DARK;
         } else {
-            color = isLight ? new Color(180, 180, 180).getRGB() : new Color(80, 80, 80).getRGB();
+            color = isLight ? COLOR_NORMAL_LIGHT : COLOR_NORMAL_DARK;
         }
 
         context.fill((int) x, (int) y, (int) (x + width), (int) (y + height), color);
         int hoverOverlay = ((int) (MathHelper.clamp(hoverAnimation, 0.0f, 1.0f) * 35.0f) << 24) | 0x00FFFFFF;
         context.fill((int) x, (int) y, (int) (x + width), (int) (y + height), hoverOverlay);
         context.drawText(mc.textRenderer, Text.literal(category.name()), (int) (x + width / 2 - mc.textRenderer.getWidth(category.name()) / 2),
-                (int) (y + height / 2 - 4), isLight ? Color.BLACK.getRGB() : Color.WHITE.getRGB(), false);
+                (int) (y + height / 2 - 4), isLight ? COLOR_LIGHT_TEXT : COLOR_DARK_TEXT, false);
     }
 
     @Override

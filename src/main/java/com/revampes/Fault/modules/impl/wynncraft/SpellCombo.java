@@ -536,7 +536,7 @@ public class SpellCombo extends Module {
             // Use the Accessor to call the private method
             // Most Fabric/Wynncraft environments use (window, button, action, mods)
             ((com.revampes.Fault.mixin.accessor.MouseAccessor) mc.mouse)
-                .revampes$invokeOnMouseButton(window, buttonCode, action, 0);
+                .revampes$invokeOnMouseButton(window, buttonCode, action);
             return true;
         } catch (Exception e) {
             return false;

@@ -24,6 +24,7 @@ import static com.revampes.Fault.Revampes.mc;
 public class SpellComboScreen extends Screen {
     private static final float LIST_WIDTH = 330f;
     private static final float ROW_HEIGHT = 38f;
+    private static final int COLOR_TEXT_WHITE = Color.WHITE.getRGB();
 
     private final SpellCombo module;
     private final List<ComboRow> rows = new ArrayList<>();
@@ -109,12 +110,12 @@ public class SpellComboScreen extends Screen {
         ensurePanelBounds();
 
         context.fill(0, 0, this.width, this.height, new Color(18, 18, 22, 245).getRGB());
-        context.drawCenteredTextWithShadow(mc.textRenderer, "Spell Combo Editor", this.width / 2, 10, Color.WHITE.getRGB());
+        context.drawCenteredTextWithShadow(mc.textRenderer, "Spell Combo Editor", this.width / 2, 10, COLOR_TEXT_WHITE);
 
         int addX = 16;
         int addY = 28;
         context.fill(addX, addY, addX + 110, addY + 20, new Color(80, 120, 80).getRGB());
-        context.drawText(mc.textRenderer, Text.literal("[+] Add Combo"), addX + 14, addY + 6, Color.WHITE.getRGB(), false);
+        context.drawText(mc.textRenderer, Text.literal("[+] Add Combo"), addX + 14, addY + 6, COLOR_TEXT_WHITE, false);
 
         context.fill(12, 52, (int) LIST_WIDTH, this.height - 12, new Color(36, 36, 44, 240).getRGB());
         context.fill((int) LIST_WIDTH + 18, 52, this.width - 12, this.height - 12, new Color(28, 28, 34, 240).getRGB());
@@ -198,6 +199,15 @@ public class SpellComboScreen extends Screen {
         }
 
         return super.mouseDragged(click, offsetX, offsetY);
+    }
+
+    @Override
+    public boolean mouseScrolled(double mouseX, double mouseY, double horizontalAmount, double verticalAmount) {
+        if (blockPanel != null) {
+            return blockPanel.mouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount);
+        }
+
+        return super.mouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount);
     }
 
     @Override

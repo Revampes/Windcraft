@@ -11,6 +11,11 @@ import java.awt.*;
 import static com.revampes.Fault.Revampes.mc;
 
 public class SelectComponent extends Component {
+    private static final int COLOR_DROPDOWN_BACKGROUND = 0xFF000000;
+    private static final int COLOR_OPTION_HOVERED = 0xFF4444AA;
+    private static final int COLOR_OPTION_NORMAL = 0xFF333333;
+    private static final int COLOR_OPTION_TEXT = 0xFFFFFFFF;
+
     private final SelectSetting setting;
     private boolean expanded;
     private boolean clickConsumed;
@@ -28,20 +33,20 @@ public class SelectComponent extends Component {
         boolean isLight = ModuleManager.ui.clickGuiColor.getValue() == 0;
         isHovered = mouseX >= x + width - 100 && mouseX <= x + width - 10 && mouseY >= y && mouseY <= y + height;
 
-        context.drawText(mc.textRenderer, setting.getName(), (int) (x + 2), (int) (y + height / 2 - 4), isLight ? Color.BLACK.getRGB() : Color.WHITE.getRGB(), false);
+        context.drawText(mc.textRenderer, setting.getName(), (int) (x + 2), (int) (y + height / 2 - 4), isLight ? COLOR_LIGHT_TEXT : COLOR_DARK_TEXT, false);
 
-        int boxColor = isHovered ? new Color(200, 200, 200).getRGB() : new Color(180, 180, 180).getRGB();
+        int boxColor = isHovered ? COLOR_BOX_HOVERED : COLOR_BOX_NORMAL;
         context.fill((int) (x + width - 100), (int) y, (int) (x + width - 10), (int) (y + height), boxColor);
 
         String currentOption = setting.getOptions()[(int) setting.getValue()];
-        context.drawText(mc.textRenderer, Text.literal(currentOption), (int) (x + width - 95), (int) (y + height / 2 - 4), isLight ? Color.BLACK.getRGB() : Color.WHITE.getRGB(), false);
+        context.drawText(mc.textRenderer, Text.literal(currentOption), (int) (x + width - 95), (int) (y + height / 2 - 4), isLight ? COLOR_LIGHT_TEXT : COLOR_DARK_TEXT, false);
 
-        context.drawText(mc.textRenderer, Text.literal(expanded ? "▲" : "▼"), (int) (x + width - 20), (int) (y + height / 2 - 4), isLight ? Color.BLACK.getRGB() : Color.WHITE.getRGB(), false);
+        context.drawText(mc.textRenderer, Text.literal(expanded ? "▲" : "▼"), (int) (x + width - 20), (int) (y + height / 2 - 4), isLight ? COLOR_LIGHT_TEXT : COLOR_DARK_TEXT, false);
 
         if (expanded) {
             context.fill((int) (x + width - 100), (int) (y + height),
                     (int) (x + width - 10), (int) (y + height + setting.getOptions().length * height),
-                    0xFF000000);
+                    COLOR_DROPDOWN_BACKGROUND);
 
             for (int i = 0; i < setting.getOptions().length; i++) {
                 int optionY = (int) (y + height * (i + 1));
@@ -50,11 +55,11 @@ public class SelectComponent extends Component {
 
                 context.fill((int) (x + width - 100), optionY,
                         (int) (x + width - 10), optionY + (int) height, // -1
-                        optionHovered ? 0xFF4444AA : 0xFF333333);
+                        optionHovered ? COLOR_OPTION_HOVERED : COLOR_OPTION_NORMAL);
 
                 context.drawText(mc.textRenderer, Text.literal(setting.getOptions()[i]),
                         (int) (x + width - 95), optionY + (int) (height / 2 - 4),
-                        0xFFFFFFFF, false);
+                        COLOR_OPTION_TEXT, false);
             }
         }
     }

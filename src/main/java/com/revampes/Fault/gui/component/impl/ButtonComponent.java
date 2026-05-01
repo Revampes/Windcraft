@@ -11,6 +11,12 @@ import java.awt.*;
 import static com.revampes.Fault.Revampes.mc;
 
 public class ButtonComponent extends Component {
+    private static final int COLOR_TOGGLE_ON = 0xFF00AA00;
+    private static final int COLOR_TOGGLE_OFF = 0xFFAA0000;
+    private static final int COLOR_LIGHT_BORDER = 0xFF000000;
+    private static final int COLOR_DARK_BORDER = 0xFFFFFFFF;
+    private static final int COLOR_BUTTON_TEXT = 0xFFFFFFFF;
+
     private final ButtonSetting setting;
 
     public ButtonComponent(ButtonSetting setting, float x, float y, float width, float height) {
@@ -31,18 +37,19 @@ public class ButtonComponent extends Component {
         boolean isLight = ModuleManager.ui.clickGuiColor.getValue() == 0;
         int toggleX = (int) (x + width - 60);
         int toggleWidth = 50;
-        int toggleColor = setting.isToggled() ? 0xFF00AA00 : 0xFFAA0000;
+        int toggleColor = setting.isToggled() ? COLOR_TOGGLE_ON : COLOR_TOGGLE_OFF;
         isHovered = mouseX >= x + width - 60 && mouseX <= x + width - 10 && mouseY >= y && mouseY <= y + height;
 
-        context.drawText(mc.textRenderer, setting.getName(), (int) (x + 2), (int) (y + height / 2 - 4), isLight ? 0xFF000000 : 0xFFFFFFFF, false);
+        context.drawText(mc.textRenderer, setting.getName(), (int) (x + 2), (int) (y + height / 2 - 4), isLight ? COLOR_LIGHT_TEXT : COLOR_DARK_TEXT, false);
 
-        context.fill(toggleX, (int) y, toggleX + toggleWidth, (int) (y + height), isLight ? 0xFF000000 : 0xFFFFFFFF);
+        int borderColor = isLight ? COLOR_LIGHT_BORDER : COLOR_DARK_BORDER;
+        context.fill(toggleX, (int) y, toggleX + toggleWidth, (int) (y + height), borderColor);
         context.fill(toggleX + 1, (int) y + 1, toggleX + toggleWidth - 1, (int) (y + height - 1), toggleColor);
 
         String toggleText = setting.isToggled() ? "ON" : "OFF";
         int textWidth = mc.textRenderer.getWidth(toggleText);
         context.drawText(mc.textRenderer, toggleText,
-                toggleX + (toggleWidth - textWidth) / 2, (int) (y + height / 2 - 4), 0xFFFFFFFF, false);
+                toggleX + (toggleWidth - textWidth) / 2, (int) (y + height / 2 - 4), COLOR_BUTTON_TEXT, false);
     }
 
     @Override
