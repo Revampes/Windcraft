@@ -22,6 +22,7 @@ import com.revampes.Fault.modules.Module;
 import com.revampes.Fault.settings.impl.ButtonSetting;
 import com.revampes.Fault.settings.impl.InputSetting;
 import com.revampes.Fault.utility.BindUtils;
+import com.revampes.Fault.utility.Input;
 import com.revampes.Fault.utility.Utils;
 
 import meteordevelopment.orbit.EventHandler;
@@ -68,19 +69,27 @@ public class SpellCombo extends Module {
         Spell3Key = GLFW.GLFW_KEY_UNKNOWN;
         Spell4Key = GLFW.GLFW_KEY_UNKNOWN;
 
+        if (mc.options == null || mc.options.allKeys == null) return;
+
         for (KeyBinding keyBinding : mc.options.allKeys) {
             if (keyBinding == null) {
                 continue;
             }
 
             String id = keyBinding.getId();
-            int parsedKey = parseKeyCode(keyBinding.getBoundKeyLocalizedText().getString());
             if (id != null && id.startsWith("wynntils.keybind.cast") && id.endsWith("Spell")) {
+                InputUtil.Key bound = ((KeyBindingAccessor) keyBinding).getKey();
+                int code = bound.getCode();
+                
+                if (bound.getCategory() == InputUtil.Type.MOUSE) {
+                    code = BindUtils.toMouseBind(code);
+                }
+
                 switch (spellIndexFromId(id)) {
-                    case 1 -> Spell1Key = parsedKey;
-                    case 2 -> Spell2Key = parsedKey;
-                    case 3 -> Spell3Key = parsedKey;
-                    case 4 -> Spell4Key = parsedKey;
+                    case 1 -> Spell1Key = code;
+                    case 2 -> Spell2Key = code;
+                    case 3 -> Spell3Key = code;
+                    case 4 -> Spell4Key = code;
                 }
             }
         }
@@ -361,19 +370,14 @@ public class SpellCombo extends Module {
         return switch (action.type) {
             case CAST_SPELL -> executeSpellAction(action.value);
             case WAIT -> action.value >= 0;
-            case LEFT_CLICK -> executeMouseAction(GLFW.GLFW_MOUSE_BUTTON_LEFT);
-            case RIGHT_CLICK -> executeMouseAction(GLFW.GLFW_MOUSE_BUTTON_RIGHT);
+            case LEFT_CLICK -> pressAndQueueRelease(BindUtils.toMouseBind(GLFW.GLFW_MOUSE_BUTTON_LEFT));
+            case RIGHT_CLICK -> pressAndQueueRelease(BindUtils.toMouseBind(GLFW.GLFW_MOUSE_BUTTON_RIGHT));
             default -> true;
         };
     }
 
-    private boolean executeMouseAction(int mouseButton) {
-        InputUtil.Key key = InputUtil.Type.MOUSE.createFromCode(mouseButton);
-        return pressAndQueueRelease(key, GLFW.GLFW_KEY_UNKNOWN);
-    }
-
     private boolean executeSpellAction(int spellIndex) {
-        int keyCode = switch (spellIndex) {
+        int bindCode = switch (spellIndex) {
             case 1 -> Spell1Key;
             case 2 -> Spell2Key;
             case 3 -> Spell3Key;
@@ -381,92 +385,58 @@ public class SpellCombo extends Module {
             default -> GLFW.GLFW_KEY_UNKNOWN;
         };
 
-
-        if (keyCode == GLFW.GLFW_KEY_UNKNOWN) {
+        if (bindCode == GLFW.GLFW_KEY_UNKNOWN) {
             Utils.addChatMessage("§cCast " + spellIndex + " Spell key is invalid. Set it to your Wynntils quick-cast key first.");
             return false;
         }
-        return pressAndQueueRelease(createInputKey(keyCode), keyCode);
+
+        return pressAndQueueRelease(bindCode);
     }
 
-    private InputUtil.Key createInputKey(int keyCode) {
-        return BindUtils.isMouseBind(keyCode)
-                ? InputUtil.Type.MOUSE.createFromCode(BindUtils.toMouseButton(keyCode))
-                : InputUtil.Type.KEYSYM.createFromCode(keyCode);
-    }
+    private boolean pressAndQueueRelease(int bindCode) {
+        if (bindCode == 0 || bindCode == GLFW.GLFW_KEY_UNKNOWN) return false;
 
-    private boolean pressAndQueueRelease(InputUtil.Key key, int keyboardKeyCode) {
-        if (key == null) {
-            return false;
+        boolean isMouse = BindUtils.isMouseBind(bindCode);
+        int realCode = isMouse ? BindUtils.toMouseButton(bindCode) : bindCode;
+
+        // 1. Raw Accessor Event Injection (Simulates hardware input)
+        if (isMouse) {
+            sendMouseEvent(realCode, GLFW.GLFW_PRESS);
+        } else {
+            sendKeyboardEvent(realCode, GLFW.GLFW_PRESS);
+        }
+
+        // 2. Vanilla KeyBinding manipulation (Sync logic)
+        InputUtil.Key inputKey = isMouse 
+            ? InputUtil.Type.MOUSE.createFromCode(realCode) 
+            : InputUtil.Type.KEYSYM.createFromCode(realCode);
+        
+        List<KeyBinding> touchedBindings = new ArrayList<>();
+        if (mc.options != null && mc.options.allKeys != null) {
+            for (KeyBinding kb : mc.options.allKeys) {
+                 if (((KeyBindingAccessor) kb).getKey().equals(inputKey)) {
+                     kb.setPressed(true);
+                     touchedBindings.add(kb);
+                 }
+            }
         }
         
-        boolean sentAny = false;
-        boolean staticPressed = false;
-
-        if (SET_KEY_PRESSED_METHOD != null && invokeStaticKeyBindingMethod(SET_KEY_PRESSED_METHOD, key, true)) {
-            sentAny = true;
-            staticPressed = true;
+        // Ensure static mappings are ticked
+        if (ON_KEY_PRESSED_METHOD != null) {
+            invokeStaticKeyBindingMethod(ON_KEY_PRESSED_METHOD, inputKey);
+        }
+        if (SET_KEY_PRESSED_METHOD != null) {
+            invokeStaticKeyBindingMethod(SET_KEY_PRESSED_METHOD, inputKey, true);
         }
 
-        if (ON_KEY_PRESSED_METHOD != null && invokeStaticKeyBindingMethod(ON_KEY_PRESSED_METHOD, key)) {
-            sentAny = true;
-        }
-
-        List<KeyBinding> touchedBindings = collectMatchingBindings(key);
-        if (!touchedBindings.isEmpty()) {
-            sentAny = true;
-        }
-
-        boolean keyboardPressed = false;
-        if (keyboardKeyCode != GLFW.GLFW_KEY_UNKNOWN) {
-            keyboardPressed = sendKeyboardEvent(keyboardKeyCode, GLFW.GLFW_PRESS);
-            if (keyboardPressed) {
-                sentAny = true;
-            }
-        }
-
-        if (!sentAny) {
-            if (staticPressed && SET_KEY_PRESSED_METHOD != null) {
-                invokeStaticKeyBindingMethod(SET_KEY_PRESSED_METHOD, key, false);
-            }
-            for (KeyBinding binding : touchedBindings) {
-                binding.setPressed(false);
-            }
-            return false;
-        }
-
-        queuePendingRelease(key, touchedBindings, keyboardKeyCode, staticPressed, keyboardPressed);
-        return true;
-    }
-
-    private List<KeyBinding> collectMatchingBindings(InputUtil.Key key) {
-        List<KeyBinding> touched = new ArrayList<>();
-        if (mc.options == null || mc.options.allKeys == null) {
-            return touched;
-        }
-
-        for (KeyBinding keyBinding : mc.options.allKeys) {
-            InputUtil.Key bound = ((KeyBindingAccessor) keyBinding).getKey();
-            if (bound == null || !bound.equals(key)) {
-                continue;
-            }
-            keyBinding.setPressed(true);
-            touched.add(keyBinding);
-        }
-
-        return touched;
-    }
-
-    private void queuePendingRelease(InputUtil.Key key, List<KeyBinding> bindings, int keyboardKeyCode,
-                                     boolean releaseStatic, boolean releaseKeyboard) {
         pendingReleases.addLast(new PendingKeyRelease(
-                key,
-                bindings,
-                keyboardKeyCode,
-                releaseStatic,
-                releaseKeyboard,
-                System.currentTimeMillis() + SPELL_KEY_HOLD_MS
+            bindCode,
+            inputKey,
+            touchedBindings,
+            System.currentTimeMillis() + SPELL_KEY_HOLD_MS
         ));
+
+        return true;
     }
 
     private void processPendingReleases(long now) {
@@ -490,12 +460,19 @@ public class SpellCombo extends Module {
     }
 
     private void releasePending(PendingKeyRelease pending) {
-        if (pending.releaseKeyboardEvent && pending.keyboardKeyCode != GLFW.GLFW_KEY_UNKNOWN) {
-            sendKeyboardEvent(pending.keyboardKeyCode, GLFW.GLFW_RELEASE);
+        boolean isMouse = BindUtils.isMouseBind(pending.bindCode);
+        int realCode = isMouse ? BindUtils.toMouseButton(pending.bindCode) : pending.bindCode;
+
+        // 1. Hardware Release Injection
+        if (isMouse) {
+            sendMouseEvent(realCode, GLFW.GLFW_RELEASE); 
+        } else {
+            sendKeyboardEvent(realCode, GLFW.GLFW_RELEASE);
         }
 
-        if (pending.releaseStaticState && SET_KEY_PRESSED_METHOD != null) {
-            invokeStaticKeyBindingMethod(SET_KEY_PRESSED_METHOD, pending.key, false);
+        // 2. Vanilla Synchronization Release
+        if (SET_KEY_PRESSED_METHOD != null) {
+            invokeStaticKeyBindingMethod(SET_KEY_PRESSED_METHOD, pending.inputKey, false);
         }
 
         for (KeyBinding keyBinding : pending.bindings) {
@@ -544,133 +521,26 @@ public class SpellCombo extends Module {
         }
     }
 
-    private int parseKeyCode(String value) {
-        if (value == null || value.isBlank()) {
-            return GLFW.GLFW_KEY_UNKNOWN;
-        }
 
-        String mouseValue = value.trim().toLowerCase(Locale.ROOT);
-        if (mouseValue.contains("button") || mouseValue.contains("click")) {
-            if (mouseValue.contains("left")) {
-                return BindUtils.toMouseBind(GLFW.GLFW_MOUSE_BUTTON_LEFT);
-            }
-            if (mouseValue.contains("right")) {
-                return BindUtils.toMouseBind(GLFW.GLFW_MOUSE_BUTTON_RIGHT);
-            }
-            if (mouseValue.contains("middle") || mouseValue.contains("wheel")) {
-                return BindUtils.toMouseBind(GLFW.GLFW_MOUSE_BUTTON_MIDDLE);
-            }
-
-            String digits = mouseValue.replaceAll("[^0-9]", "");
-            if (!digits.isEmpty()) {
-                try {
-                    int button = Integer.parseInt(digits);
-                    if (button >= 0) {
-                        return BindUtils.toMouseBind(button);
-                    }
-                } catch (NumberFormatException ignored) {
-                    return GLFW.GLFW_KEY_UNKNOWN;
-                }
-            }
-        }
-
-        String normalized = BindUtils.normalize(value);
-        if (normalized.isEmpty() || normalized.equals("NONE") || normalized.equals("UNBOUND")) {
-            return GLFW.GLFW_KEY_UNKNOWN;
-        }
-
-        if (normalized.contains("LEFTBUTTON")) {
-            return BindUtils.toMouseBind(GLFW.GLFW_MOUSE_BUTTON_LEFT);
-        }
-
-        if (normalized.contains("RIGHTBUTTON")) {
-            return BindUtils.toMouseBind(GLFW.GLFW_MOUSE_BUTTON_RIGHT);
-        }
-
-        if (normalized.contains("MIDDLEBUTTON")) {
-            return BindUtils.toMouseBind(GLFW.GLFW_MOUSE_BUTTON_MIDDLE);
-        }
-
-        if (normalized.startsWith("BUTTON")) {
-            String digits = normalized.replaceAll("[^0-9]", "");
-            if (!digits.isEmpty()) {
-                try {
-                    return BindUtils.toMouseBind(Integer.parseInt(digits));
-                } catch (NumberFormatException ignored) {
-                    return GLFW.GLFW_KEY_UNKNOWN;
-                }
-            }
-        }
-
-        if (normalized.length() == 1) {
-            char c = normalized.charAt(0);
-            if (c >= 'A' && c <= 'Z') {
-                return GLFW.GLFW_KEY_A + (c - 'A');
-            }
-            if (c >= '0' && c <= '9') {
-                return GLFW.GLFW_KEY_0 + (c - '0');
-            }
-        }
-
-        if (normalized.matches("-?\\d+")) {
-            try {
-                return Integer.parseInt(normalized);
-            } catch (NumberFormatException ignored) {
-                return GLFW.GLFW_KEY_UNKNOWN;
-            }
-        }
-
-        if (normalized.startsWith("F") && normalized.length() <= 3 && normalized.length() > 1) {
-            try {
-                int fKey = Integer.parseInt(normalized.substring(1));
-                if (fKey >= 1 && fKey <= 25) {
-                    return GLFW.GLFW_KEY_F1 + (fKey - 1);
-                }
-            } catch (NumberFormatException ignored) {
-                return GLFW.GLFW_KEY_UNKNOWN;
-            }
-        }
-
-        return switch (normalized) {
-            case "SPACE", "SPACEBAR" -> GLFW.GLFW_KEY_SPACE;
-            case "TAB" -> GLFW.GLFW_KEY_TAB;
-            case "ENTER", "RETURN" -> GLFW.GLFW_KEY_ENTER;
-            case "ESC", "ESCAPE" -> GLFW.GLFW_KEY_ESCAPE;
-            case "BACKSPACE" -> GLFW.GLFW_KEY_BACKSPACE;
-            case "DELETE", "DEL" -> GLFW.GLFW_KEY_DELETE;
-            case "INSERT", "INS" -> GLFW.GLFW_KEY_INSERT;
-            case "HOME" -> GLFW.GLFW_KEY_HOME;
-            case "END" -> GLFW.GLFW_KEY_END;
-            case "PAGEUP", "PGUP" -> GLFW.GLFW_KEY_PAGE_UP;
-            case "PAGEDOWN", "PGDN" -> GLFW.GLFW_KEY_PAGE_DOWN;
-            case "UP", "UPARROW" -> GLFW.GLFW_KEY_UP;
-            case "DOWN", "DOWNARROW" -> GLFW.GLFW_KEY_DOWN;
-            case "LEFT", "LEFTARROW" -> GLFW.GLFW_KEY_LEFT;
-            case "RIGHT", "RIGHTARROW" -> GLFW.GLFW_KEY_RIGHT;
-            case "SHIFT", "LEFTSHIFT", "LSHIFT" -> GLFW.GLFW_KEY_LEFT_SHIFT;
-            case "RIGHTSHIFT", "RSHIFT" -> GLFW.GLFW_KEY_RIGHT_SHIFT;
-            case "CTRL", "CONTROL", "LEFTCONTROL", "LEFTCTRL", "LCTRL" -> GLFW.GLFW_KEY_LEFT_CONTROL;
-            case "RIGHTCONTROL", "RIGHTCTRL", "RCTRL" -> GLFW.GLFW_KEY_RIGHT_CONTROL;
-            case "ALT", "LEFTALT", "LALT" -> GLFW.GLFW_KEY_LEFT_ALT;
-            case "RIGHTALT", "RALT" -> GLFW.GLFW_KEY_RIGHT_ALT;
-            case "CAPS", "CAPSLOCK" -> GLFW.GLFW_KEY_CAPS_LOCK;
-            case "COMMA" -> GLFW.GLFW_KEY_COMMA;
-            case "PERIOD", "DOT" -> GLFW.GLFW_KEY_PERIOD;
-            case "MINUS", "DASH" -> GLFW.GLFW_KEY_MINUS;
-            case "EQUAL", "EQUALS" -> GLFW.GLFW_KEY_EQUAL;
-            case "SEMICOLON" -> GLFW.GLFW_KEY_SEMICOLON;
-            case "APOSTROPHE", "QUOTE" -> GLFW.GLFW_KEY_APOSTROPHE;
-            case "SLASH", "FORWARDSLASH" -> GLFW.GLFW_KEY_SLASH;
-            case "BACKSLASH" -> GLFW.GLFW_KEY_BACKSLASH;
-            case "LEFTBRACKET", "LBRACKET" -> GLFW.GLFW_KEY_LEFT_BRACKET;
-            case "RIGHTBRACKET", "RBRACKET" -> GLFW.GLFW_KEY_RIGHT_BRACKET;
-            case "GRAVE", "TILDE" -> GLFW.GLFW_KEY_GRAVE_ACCENT;
-            default -> GLFW.GLFW_KEY_UNKNOWN;
-        };
-    }
 
     private boolean isBusy() {
         return !queuedActions.isEmpty() || nextActionAtMs > System.currentTimeMillis();
+    }
+
+    private boolean sendMouseEvent(int buttonCode, int action) {
+        if (mc.mouse == null || mc.getWindow() == null) return false;
+        
+        long window = mc.getWindow().getHandle();
+
+        try {
+            // Use the Accessor to call the private method
+            // Most Fabric/Wynncraft environments use (window, button, action, mods)
+            ((com.revampes.Fault.mixin.accessor.MouseAccessor) mc.mouse)
+                .revampes$invokeOnMouseButton(window, buttonCode, action, 0);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     private void clearQueue() {
@@ -692,20 +562,15 @@ public class SpellCombo extends Module {
     }
 
     private static class PendingKeyRelease {
-        private final InputUtil.Key key;
+        private final int bindCode;
+        private final InputUtil.Key inputKey;
         private final List<KeyBinding> bindings;
-        private final int keyboardKeyCode;
-        private final boolean releaseStaticState;
-        private final boolean releaseKeyboardEvent;
         private final long releaseAtMs;
 
-        private PendingKeyRelease(InputUtil.Key key, List<KeyBinding> bindings, int keyboardKeyCode,
-                                  boolean releaseStaticState, boolean releaseKeyboardEvent, long releaseAtMs) {
-            this.key = key;
+        private PendingKeyRelease(int bindCode, InputUtil.Key inputKey, List<KeyBinding> bindings, long releaseAtMs) {
+            this.bindCode = bindCode;
+            this.inputKey = inputKey;
             this.bindings = bindings;
-            this.keyboardKeyCode = keyboardKeyCode;
-            this.releaseStaticState = releaseStaticState;
-            this.releaseKeyboardEvent = releaseKeyboardEvent;
             this.releaseAtMs = releaseAtMs;
         }
     }
@@ -719,4 +584,6 @@ public class SpellCombo extends Module {
             this.value = value;
         }
     }
+
+
 }
