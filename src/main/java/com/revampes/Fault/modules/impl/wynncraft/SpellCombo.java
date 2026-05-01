@@ -4,7 +4,9 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 import meteordevelopment.orbit.EventHandler;
+import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.minecraft.client.input.KeyInput;
+import net.minecraft.client.input.MouseInput;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.util.InputUtil;
 import org.lwjgl.glfw.GLFW;
@@ -14,6 +16,7 @@ import com.revampes.Fault.gui.block.BlockType;
 import com.revampes.Fault.gui.screen.SpellComboScreen;
 import com.revampes.Fault.mixin.accessor.KeyBindingAccessor;
 import com.revampes.Fault.mixin.accessor.KeyboardAccessor;
+import com.revampes.Fault.mixin.accessor.MouseAccessor;
 import com.revampes.Fault.modules.Module;
 import com.revampes.Fault.settings.impl.ButtonSetting;
 import com.revampes.Fault.settings.impl.InputSetting;
@@ -38,12 +41,17 @@ public class SpellCombo extends Module {
     private static final Method ON_KEY_PRESSED_METHOD = findKeyBindingMethod("onKeyPressed", InputUtil.Key.class);
     private static final Method SET_KEY_PRESSED_METHOD = findKeyBindingMethod("setKeyPressed", InputUtil.Key.class, boolean.class);
 
-    private final InputSetting cast1SpellKey = new InputSetting("Cast 1st Spell", 32, "Z", "Wynntils quick-cast key");
-    private final InputSetting cast2SpellKey = new InputSetting("Cast 2nd Spell", 32, "X", "Wynntils quick-cast key");
-    private final InputSetting cast3SpellKey = new InputSetting("Cast 3rd Spell", 32, "C", "Wynntils quick-cast key");
-    private final InputSetting cast4SpellKey = new InputSetting("Cast 4th Spell", 32, "V", "Wynntils quick-cast key");
+//    private final InputSetting cast1SpellKey = new InputSetting("Cast 1st Spell", 32, "Z", "Wynntils quick-cast key");
+//    private final InputSetting cast2SpellKey = new InputSetting("Cast 2nd Spell", 32, "X", "Wynntils quick-cast key");
+//    private final InputSetting cast3SpellKey = new InputSetting("Cast 3rd Spell", 32, "C", "Wynntils quick-cast key");
+//    private final InputSetting cast4SpellKey = new InputSetting("Cast 4th Spell", 32, "V", "Wynntils quick-cast key");
     private final ButtonSetting configureButton = new ButtonSetting("Configure", this::openEditor);
     private final InputSetting comboStorage = new InputSetting("Combo Storage", 200000, "[]");
+
+    private static int Spell1Key;
+    private static int Spell2Key;
+    private static int Spell3Key;
+    private static int Spell4Key;
 
     private final List<ComboProfile> combos = new ArrayList<>();
     private final ArrayDeque<RuntimeAction> queuedActions = new ArrayDeque<>();
@@ -54,13 +62,29 @@ public class SpellCombo extends Module {
     public SpellCombo() {
         super("SpellCombo", "Queue Wynntils quick-cast spell chains onto one key.", category.Wynncraft);
         comboStorage.visible = false;
-
-        this.registerSetting(cast1SpellKey);
-        this.registerSetting(cast2SpellKey);
-        this.registerSetting(cast3SpellKey);
-        this.registerSetting(cast4SpellKey);
         this.registerSetting(configureButton);
         this.registerSetting(comboStorage);
+    }
+    private void setKey()
+    {
+        for (KeyBinding keyBinding : mc.options.allKeys) {
+            String id = keyBinding.getId();
+            switch (id) {
+                case "wynntils.keybind.castFirstSpell" ->
+                        Spell1Key = parseKeyCode(keyBinding.getBoundKeyLocalizedText().getString());
+                case "wynntils.keybind.castSecondSpell" ->
+                        Spell2Key = parseKeyCode(keyBinding.getBoundKeyLocalizedText().getString());
+                case "wynntils.keybind.castThirdSpell" ->
+                        Spell3Key = parseKeyCode(keyBinding.getBoundKeyLocalizedText().getString());
+                case "wynntils.keybind.castFourthSpell" ->
+                        Spell4Key = parseKeyCode(keyBinding.getBoundKeyLocalizedText().getString());
+            }
+
+        }
+        System.out.println("Spell1: "  + Spell1Key);
+        System.out.println("Spell2: "  + Spell2Key);
+        System.out.println("Spell3: "  + Spell3Key);
+        System.out.println("Spell4: "  + Spell4Key);
     }
 
     @Override
@@ -74,6 +98,8 @@ public class SpellCombo extends Module {
         clearQueue();
         forceReleaseAllPending();
         resetTriggerHoldStates();
+        setKey();
+
     }
 
     @Override
@@ -119,6 +145,32 @@ public class SpellCombo extends Module {
     public void openEditor() {
         loadCombosFromStorage();
         mc.setScreen(new SpellComboScreen(this));
+    }
+
+    public void debugPrintKeybindings() {
+        if (mc.options == null || mc.options.allKeys == null) {
+            Utils.addChatMessage("§cNo keybindings available.");
+            return;
+        }
+
+        Utils.addChatMessage("§eSearching for Wynntils keybindings...");
+        for (KeyBinding keyBinding : mc.options.allKeys) {
+            try {
+                String category = keyBinding.getId();
+                String displayName = keyBinding.getBoundKeyLocalizedText().getString();
+
+                // Try to extract the keybinding ID from the object using reflection or other methods
+                System.out.println("[KEYBIND] Category: " + category + " | Bound: " + displayName + " | Object: " + keyBinding.getClass().getName());
+
+                // Print any keybindings that contain "cast" or "spell" or "wynntils"
+                String catLower = category.toLowerCase();
+                if (catLower.contains("cast") || catLower.contains("spell") || catLower.contains("wynntils") || catLower.contains("quick")) {
+                    Utils.addChatMessage("§a[SPELL] Category: " + category + " -> " + displayName);
+                }
+            } catch (Exception e) {
+                // Silently skip
+            }
+        }
     }
 
     public List<ComboProfile> getCombos() {
@@ -299,25 +351,19 @@ public class SpellCombo extends Module {
     }
 
     private boolean executeSpellAction(int spellIndex) {
-        InputSetting spellKeySetting = switch (spellIndex) {
-            case 1 -> cast1SpellKey;
-            case 2 -> cast2SpellKey;
-            case 3 -> cast3SpellKey;
-            case 4 -> cast4SpellKey;
-            default -> null;
+        int keyCode = switch (spellIndex) {
+            case 1 -> Spell1Key;
+            case 2 -> Spell2Key;
+            case 3 -> Spell3Key;
+            case 4 -> Spell4Key;
+            default -> GLFW.GLFW_KEY_UNKNOWN;
         };
 
-        if (spellKeySetting == null) {
-            Utils.addChatMessage("§cInvalid spell index: §f" + spellIndex);
-            return false;
-        }
 
-        int keyCode = parseKeyCode(spellKeySetting.getValue());
         if (keyCode == GLFW.GLFW_KEY_UNKNOWN) {
             Utils.addChatMessage("§cCast " + spellIndex + " Spell key is invalid. Set it to your Wynntils quick-cast key first.");
             return false;
         }
-
         return pressAndQueueRelease(InputUtil.Type.KEYSYM.createFromCode(keyCode), keyCode);
     }
 
@@ -325,7 +371,7 @@ public class SpellCombo extends Module {
         if (key == null) {
             return false;
         }
-
+        
         boolean sentAny = false;
         boolean staticPressed = false;
 
@@ -429,6 +475,26 @@ public class SpellCombo extends Module {
         }
     }
 
+    private boolean sendMouseEvent(int mouseButton, int action) {
+        if (mc.mouse == null || mc.getWindow() == null) {
+            return false;
+        }
+
+        long window = mc.getWindow().getHandle();
+        if (window == 0L) {
+            return false;
+        }
+
+        try {
+            MouseInput input = new MouseInput(mouseButton, 0);
+            MouseAccessor mouse = (MouseAccessor) mc.mouse;
+            mouse.revampes$invokeOnMouseButton(window, input, action);
+            return true;
+        } catch (Exception ignored) {
+            return false;
+        }
+    }
+
     private boolean sendKeyboardEvent(int keyCode, int action) {
         if (keyCode == GLFW.GLFW_KEY_UNKNOWN || mc.keyboard == null || mc.getWindow() == null) {
             return false;
@@ -471,6 +537,11 @@ public class SpellCombo extends Module {
     }
 
     private int parseKeyCode(String value) {
+        System.out.println("Parsing key code from: " + value);
+        if (value.contains("Button"))
+        {
+            return Integer.parseInt(value.replace("Button ",""));
+        }
         String normalized = BindUtils.normalize(value);
         if (normalized.isEmpty() || normalized.equals("NONE") || normalized.equals("UNBOUND")) {
             return GLFW.GLFW_KEY_UNKNOWN;
