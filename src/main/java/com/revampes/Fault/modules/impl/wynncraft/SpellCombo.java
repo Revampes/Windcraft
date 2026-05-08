@@ -155,9 +155,11 @@ public class SpellCombo extends Module {
             return;
         }
 
+        long jitter = ThreadLocalRandom.current().nextLong(10, 31);
+
         nextActionAtMs = queuedActions.isEmpty()
                 ? 0L
-                : now + (action.type == BlockType.WAIT ? action.value : SPELL_KEY_HOLD_MS);
+                : now + (action.type == BlockType.WAIT ? action.value : SPELL_KEY_HOLD_MS + jitter);
     }
 
     public void openEditor() {
@@ -359,7 +361,7 @@ public class SpellCombo extends Module {
                         appendBlocks(block.children, actions);
                     }
                 }
-                case CAST_SPELL, WAIT, LEFT_CLICK, RIGHT_CLICK -> actions.add(new RuntimeAction(block.type, block.value));
+                case CAST_SPELL, WAIT, LEFT_CLICK, RIGHT_CLICK, HOLD_SHIFT, RELEASE_SHIFT -> actions.add(new RuntimeAction(block.type, block.value));
                 case WHEN_TRIGGER -> {
                 }
             }
@@ -372,8 +374,23 @@ public class SpellCombo extends Module {
             case WAIT -> action.value >= 0;
             case LEFT_CLICK -> pressAndQueueRelease(BindUtils.toMouseBind(GLFW.GLFW_MOUSE_BUTTON_LEFT));
             case RIGHT_CLICK -> pressAndQueueRelease(BindUtils.toMouseBind(GLFW.GLFW_MOUSE_BUTTON_RIGHT));
+            case HOLD_SHIFT -> setShiftState(true);
+            case RELEASE_SHIFT -> setShiftState(false);
             default -> true;
         };
+    }
+
+    private boolean setShiftState(boolean pressed) {
+        int keyCode = GLFW.GLFW_KEY_LEFT_SHIFT;
+        int action = pressed ? GLFW.GLFW_PRESS : GLFW.GLFW_RELEASE;
+
+        sendKeyboardEvent(keyCode, action);
+
+        if (mc.options != null && mc.options.sneakKey != null) {
+            mc.options.sneakKey.setPressed(pressed);
+        }
+
+        return true;
     }
 
     private boolean executeSpellAction(int spellIndex) {

@@ -6,7 +6,9 @@ public enum BlockType {
     CAST_SPELL("Cast n Spell then", true, false, 1, 1, 4),
     WAIT("Wait for n ms", true, false, 100, 0, 100000),
     LEFT_CLICK("Left click", false, false, 0, 0, 0),
-    RIGHT_CLICK("Right click", false, false, 0, 0, 0);
+    RIGHT_CLICK("Right click", false, false, 0, 0, 0),
+    HOLD_SHIFT("Hold shift", false, false, 0, 0, 0),
+    RELEASE_SHIFT("Release shift", false, false, 0, 0, 0);
 
     private final String label;
     private final boolean editableValue;
@@ -49,6 +51,6 @@ public enum BlockType {
     }
 
     public static BlockType[] paletteValues() {
-        return new BlockType[]{REPEAT, CAST_SPELL, WAIT, LEFT_CLICK, RIGHT_CLICK};
+        return new BlockType[]{REPEAT, CAST_SPELL, WAIT, LEFT_CLICK, RIGHT_CLICK, LEFT_CLICK, HOLD_SHIFT, RELEASE_SHIFT};
     }
 }
