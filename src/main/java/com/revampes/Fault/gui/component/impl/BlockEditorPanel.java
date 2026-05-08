@@ -291,6 +291,8 @@ public class BlockEditorPanel extends Component {
             case LEFT_CLICK -> new Color(55, 150, 85);
             case RIGHT_CLICK -> new Color(160, 70, 70);
             case WHEN_TRIGGER -> new Color(90, 120, 190);
+            case HOLD_SHIFT -> new Color(200, 140, 40);
+            case RELEASE_SHIFT -> new Color(220, 160, 60);
         };
 
         if (ghost) {
@@ -308,6 +310,8 @@ public class BlockEditorPanel extends Component {
             case LEFT_CLICK -> "Left click";
             case RIGHT_CLICK -> "Right click";
             case WHEN_TRIGGER -> "When trigger";
+            case HOLD_SHIFT -> "Hold Shift";
+            case RELEASE_SHIFT -> "Release Shift";
         };
     }
 

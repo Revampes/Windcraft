@@ -6,6 +6,7 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.concurrent.ThreadLocalRandom;
 
 import org.lwjgl.glfw.GLFW;
 
@@ -362,8 +363,8 @@ public class SpellCombo extends Module {
                     }
                 }
                 case CAST_SPELL, WAIT, LEFT_CLICK, RIGHT_CLICK, HOLD_SHIFT, RELEASE_SHIFT -> actions.add(new RuntimeAction(block.type, block.value));
-                case WHEN_TRIGGER -> {
-                }
+                // case WHEN_TRIGGER -> {
+                // }
             }
         }
     }
